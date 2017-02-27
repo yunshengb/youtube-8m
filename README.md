@@ -1,6 +1,12 @@
-# YouTube-8M Tensorflow Starter Code
+# YouTube-8M Tensorflow Code
 
-This repo contains starter code for training and evaluating machine learning
+Group members: Murat Turkeli, Tyler Kohan, Yunsheng Bai
+
+This repo is a fork of [the starter repo](https://github.com/google/youtube-8m).
+It is both for a [Kaggle challenge](https://www.kaggle.com/c/youtube8m) 
+and the final project of `EECS 351` at UM Ann Arbor.
+
+This repo contains code for training and evaluating machine learning
 models over the [YouTube-8M](https://research.google.com/youtube8m/) dataset.
 The code gives an end-to-end working example for reading the dataset, training a
 TensorFlow model, and evaluating the performance of the model. Out of the box,
@@ -73,13 +79,16 @@ gcloud beta ml local train \
 --train_dir=/tmp/yt8m_train --start_new_model
 ```
 
-You might want to download some training shards locally to speed things up and
-allow you to work offline. The command below will copy 10 out of the 4096
-training data files to the current directory.
+You might want to download some training, validating, and testing shards locally to speed things up and
+allow you to work offline. 
+The command below will copy some data files to the `data` directory.
+Before running, make sure [`gsutil`](https://cloud.google.com/storage/docs/gsutil_install) is installed.`
 
 ```sh
-# Downloads 55MB of data.
-gsutil cp gs://us.data.yt8m.org/1/video_level/train/traina[0-9].tfrecord .
+# Downloads 82MB of data.
+gsutil cp gs://us.data.yt8m.org/1/video_level/train/traina[0-9].tfrecord data/
+gsutil cp gs://us.data.yt8m.org/1/video_level/validate/validatea[0-9].tfrecord data/
+gsutil cp gs://us.data.yt8m.org/1/video_level/test/testa[0-9].tfrecord data/
 ```
 Once you download the files, you can point the job to them using the
 'train_data_pattern' argument (i.e. instead of pointing to the "gs://..."
@@ -416,7 +425,19 @@ This sample code contains implementations of the models given in the
 
 ## Overview of Files
 
-### Training
+### `data/`
+
+Datasets that should never be committed to Github. See [instructions above]((#testing-locally)) on how to download.
+
+### `deliverable`
+
+Documens for team communication and final submission.
+
+### `src/`
+
+Source code that can be split into:
+
+#### Training
 *   `train.py`: The primary script for training models.
 *   `losses.py`: Contains definitions for loss functions.
 *   `models.py`: Contains the base class for defining a model.
@@ -429,7 +450,7 @@ This sample code contains implementations of the models given in the
 *   `readers.py`: Contains definitions for the Video dataset and Frame
                   dataset readers.
 
-### Evaluation
+#### Evaluation
 *   `eval.py`: The primary script for evaluating models.
 *   `eval_util.py`: Provides a class that calculates all evaluation metrics.
 *   `average_precision_calculator.py`: Functions for calculating
@@ -437,13 +458,18 @@ This sample code contains implementations of the models given in the
 *   `mean_average_precision_calculator.py`: Functions for calculating mean
                                             average precision.
 
-### Inference
+#### Inference
 *   `inference.py`: Generates an output file containing predictions of
                     the model over a set of videos.
 
-### Misc
-*   `README.md`: This documentation.
+#### Misc
 *   `utils.py`: Common functions.
+
+### Top level:
+
+*   `README.md`: This documentation.
+*   `try.ipynb`: Python script for quick experiment.
+*   `*.sh`: Bash scripts for various purposes.
 
 ## About This Project
 This project is meant help people quickly get started working with the
