@@ -1,0 +1,13 @@
+--------------------------------------------------------------------------------
+model: LogisticModel (most basic)
+logs:
+yt8m_inference_20170226_145449	Training	Feb 26, 2017, 2:54:50 PM	26 min 15 sec	View logs
+yt8m_eval_20170226_143518	Training	Feb 26, 2017, 2:35:20 PM	17 min 3 sec	View logs
+yt8m_train_20170226_141124	Training	Feb 26, 2017, 2:11:28 PM	22 min 24 sec	View logs
+result: 87 0.65407
+--------------------------------------------------------------------------------
+
+
+
+
+

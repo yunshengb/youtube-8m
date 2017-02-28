@@ -1,4 +1,4 @@
-option = 't'
+option = 'i'
 model = 'DbofModel'
 machine = 'remote'
 
@@ -70,8 +70,7 @@ def getModelParams():
     return '''--frame_features={} \\
     {} \\
     --feature_names="{}rgb, {}audio" \\
-    --feature_sizes="1024, 128" \\
-    --batch_size=256'''.format \
+    --feature_sizes="1024, 128"'''.format \
         (frame_level, model_param, feature_prefix, feature_prefix)
 
 def isFrameLevel():
