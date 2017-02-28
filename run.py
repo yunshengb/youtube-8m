@@ -1,5 +1,5 @@
-model = 'LstmModel'
 option = 't'
+model = 'LstmModel'
 machine = 'remote'
 
 '''
@@ -40,27 +40,27 @@ def main():
         print 'machine must be "local" or "remote"'
 
 def getLocalCmd(option, data_pattern, tfrecord, output_file=''):
-    return '''python src/{}.py \\
-    --{}_data_pattern="data/{}/{}*.tfrecord" \\
-    --train_dir=model/{} \\
-    {} {}'''.format \
+    return '''python src/{0}.py \\
+    --{1}_data_pattern="data/{2}/{3}*.tfrecord" \\
+    --train_dir=model/{4} \\
+    {5} {6}'''.format \
         (option, data_pattern, 'frame' if isFrameLevel() else 'video', \
          tfrecord, getModelPath(), getModelParams(), \
          output_file)
 
 def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     return '''BUCKET_NAME=gs://${{USER}}_yt8m_train_bucket;
-    JOB_NAME=yt8m_{}_$(date +%Y%m%d_%H%M%S);
+    JOB_NAME=yt8m_{0}_$(date +%Y%m%d_%H%M%S);
     gcloud --verbosity=debug beta ml jobs \\
     submit training $JOB_NAME \\
-    --package-path=src --module-name=src.{} \\
+    --package-path=src --module-name=src.{1} \\
     --staging-bucket=$BUCKET_NAME --region=us-east1 \\
     --config=src/cloudml-gpu.yaml \\
-    -- --{}_data_pattern="gs://youtube8m-ml-us-east1/1/{}_level/{}*.tfrecord" \\
-    --train_dir=$BUCKET_NAME/{} \\
-    {} {}'''.format \
+    -- --{2}_data_pattern="gs://youtube8m-ml-us-east1/1/{3}_level/{4}/{5}*.tfrecord" \\
+    --train_dir=$BUCKET_NAME/{6} \\
+    {7} {8}'''.format \
         (option, option, data_pattern, 'frame' if isFrameLevel() else 'video', \
-         tfrecord, tfrecord, getModelParams(), output_file)
+         tfrecord, tfrecord, getModelPath(), getModelParams(), output_file)
 
 def getModelParams():
     model_param = '--model={}'.format(model)
