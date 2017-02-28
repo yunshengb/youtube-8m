@@ -85,10 +85,13 @@ The command below will copy some data files to the `data` directory.
 Before running, make sure [`gsutil`](https://cloud.google.com/storage/docs/gsutil_install) is installed.`
 
 ```sh
-# Downloads 82MB of data.
-gsutil cp gs://us.data.yt8m.org/1/video_level/train/traina[0-9].tfrecord data/
-gsutil cp gs://us.data.yt8m.org/1/video_level/validate/validatea[0-9].tfrecord data/
-gsutil cp gs://us.data.yt8m.org/1/video_level/test/testa[0-9].tfrecord data/
+# Downloads 574MB of data.
+gsutil cp gs://us.data.yt8m.org/1/video_level/train/traina[0-9].tfrecord data/video
+gsutil cp gs://us.data.yt8m.org/1/frame_level/train/traina[0].tfrecord data/frame
+gsutil cp gs://us.data.yt8m.org/1/video_level/validate/validatea[0-9].tfrecord data/video
+gsutil cp gs://us.data.yt8m.org/1/frame_level/validate/validatea[0].tfrecord data/frame
+gsutil cp gs://us.data.yt8m.org/1/video_level/test/testa[0-9].tfrecord data/video
+gsutil cp gs://us.data.yt8m.org/1/frame_level/test/testa[0].tfrecord data/frame
 ```
 Once you download the files, you can point the job to them using the
 'train_data_pattern' argument (i.e. instead of pointing to the "gs://..."
@@ -318,7 +321,7 @@ curl data.yt8m.org/download.py | shard=1,100 partition=1/frame_level/train mirro
 To start training a logistic model on the video-level features, run
 
 ```sh
-python train.py --train_data_pattern='../data/train*.tfrecord' --train_dir=../model/video_level_logistic_model
+python src/train.py --train_data_pattern='data/train*.tfrecord' --train_dir=model/video_level_logistic_model
 ```
 
 Since the dataset is sharded into 4096 individual files, we use a wildcard (\*)
@@ -337,7 +340,7 @@ adding `--start_new_model` flag to your run configuration.
 To evaluate the model, run
 
 ```sh
-python eval.py --eval_data_pattern='../data/validate*.tfrecord' --train_dir=../model/video_level_logistic_model --run_once=True
+python src/eval.py --eval_data_pattern='data/validate*.tfrecord' --train_dir=model/video_level_logistic_model --run_once=True
 ```
 
 As the model is training or evaluating, you can view the results on tensorboard
@@ -353,7 +356,7 @@ When you are happy with your model, you can generate a csv file of predictions
 from it by running
 
 ```sh
-python inference.py --output_file=../model/video_level_logistic_model/predictions.csv --input_data_pattern='../data/test*.tfrecord' --train_dir=../model/video_level_logistic_model
+python src/inference.py --output_file=model/video_level_logistic_model/predictions.csv --input_data_pattern='data/test*.tfrecord' --train_dir=model/video_level_logistic_model
 ```
 
 This will output the top 20 predicted labels from the model for every example
@@ -472,7 +475,7 @@ Source code that can be split into:
 
 *   `README.md`: This documentation.
 *   `try.ipynb`: Python script for quick experiment.
-*   `*.sh`: Bash scripts for various purposes.
+*   `run.py`: Configuration and running script. Modify and execute it `python run.py`.
 
 ## About This Project
 This project is meant help people quickly get started working with the
