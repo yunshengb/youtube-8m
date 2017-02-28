@@ -14,7 +14,7 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     submit training $JOB_NAME \\
     --package-path=src --module-name=src.{} \\
     --staging-bucket=$BUCKET_NAME --region=us-east1 \\
-    --config=youtube-8m/cloudml-gpu.yaml \\
+    --config=youtube-8m/src/cloudml-gpu.yaml \\
     -- --{}_data_pattern='
     "gs://youtube8m-ml-us-east1/1/video_level/{}/{}*.tfrecord" \\
     --train_dir=$BUCKET_NAME/{}'
