@@ -1,5 +1,5 @@
 option = 't'
-model = 'LstmModel'
+model = 'DbofModel'
 machine = 'remote'
 
 '''
@@ -56,8 +56,7 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     --package-path=src --module-name=src.{1} \\
     --staging-bucket=$BUCKET_NAME --region=us-east1 \\
     --config=src/cloudml-gpu.yaml \\
-    -- --{2}_data_pattern=
-    "gs://youtube8m-ml-us-east1/1/{3}_level/{4}/{5}*.tfrecord" \\
+    -- --{2}_data_pattern="gs://youtube8m-ml-us-east1/1/{3}_level/{4}/{5}*.tfrecord" \\
     {6} \\
     --train_dir=$BUCKET_NAME/{7} \\
     {8}'''.format \
