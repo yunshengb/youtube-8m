@@ -321,7 +321,7 @@ curl data.yt8m.org/download.py | shard=1,100 partition=1/frame_level/train mirro
 To start training a logistic model on the video-level features, run
 
 ```sh
-python src/train.py --train_data_pattern='data/train*.tfrecord' --train_dir=model/video_level_logistic_model
+python src/train.py --train_data_pattern='data/video/train*.tfrecord' --train_dir=model/video_level_logistic_model
 ```
 
 Since the dataset is sharded into 4096 individual files, we use a wildcard (\*)
@@ -340,7 +340,7 @@ adding `--start_new_model` flag to your run configuration.
 To evaluate the model, run
 
 ```sh
-python src/eval.py --eval_data_pattern='data/validate*.tfrecord' --train_dir=model/video_level_logistic_model --run_once=True
+python src/eval.py --eval_data_pattern='data/video/validate*.tfrecord' --train_dir=model/video_level_logistic_model --run_once=True
 ```
 
 As the model is training or evaluating, you can view the results on tensorboard
@@ -356,7 +356,7 @@ When you are happy with your model, you can generate a csv file of predictions
 from it by running
 
 ```sh
-python src/inference.py --output_file=model/video_level_logistic_model/predictions.csv --input_data_pattern='data/test*.tfrecord' --train_dir=model/video_level_logistic_model
+python src/inference.py --output_file=model/video_level_logistic_model/predictions.csv --input_data_pattern='data/video/test*.tfrecord' --train_dir=model/video_level_logistic_model
 ```
 
 This will output the top 20 predicted labels from the model for every example

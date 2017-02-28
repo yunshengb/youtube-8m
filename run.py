@@ -7,7 +7,7 @@ def main():
                  '"e" for evaluate, or "i" for infer'
     if machine == 'local':
         if option == 't':
-            removeCurrModel()
+            execute('rm -rf model/{}'.format(getModelPath()))
             execute(getLocalCmd('train', 'train', 'train'))
         elif option == 'e':
             execute(getLocalCmd('eval', 'eval', 'validate'))
@@ -19,7 +19,6 @@ def main():
             print option_msg
     elif machine == 'remote':
         if option == 't':
-            removeCurrModel()
             execute(getRemoteCmd('train', 'train', 'train'))
         elif option == 'e':
             execute(getRemoteCmd('eval', 'eval', 'validate'))
@@ -49,8 +48,7 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     --package-path=src --module-name=src.{} \\
     --staging-bucket=$BUCKET_NAME --region=us-east1 \\
     --config=src/cloudml-gpu.yaml \\
-    -- --{}_data_pattern=' \\
-    "gs://youtube8m-ml-us-east1/1/{}_level/{}*.tfrecord" \\
+    -- --{}_data_pattern="gs://youtube8m-ml-us-east1/1/{}_level/{}*.tfrecord" \\
     --train_dir=$BUCKET_NAME/{}' \\
     {} {}'''.format \
         (option, option, data_pattern, 'frame' if isFrameLevel() else 'video', \
@@ -92,9 +90,6 @@ def getModelNames(file):
         if inspect.isclass(obj):
             rtn.append(name)
     return rtn
-
-def removeCurrModel():
-    execute('rm -rf model/{}'.format(getModelPath()))
 
 def getModelPath():
     return model + 'Save'
