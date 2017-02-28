@@ -1,4 +1,4 @@
-option = 'i'
+option = 't'
 model = 'LstmModel'
 machine = 'remote'
 
@@ -56,12 +56,13 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     --package-path=src --module-name=src.{1} \\
     --staging-bucket=$BUCKET_NAME --region=us-east1 \\
     --config=src/cloudml-gpu.yaml \\
-    -- --{2}_data_pattern="gs://youtube8m-ml-us-east1/1/{3}_level/{4}/{5}*.tfrecord" \\
+    -- --{2}_data_pattern=
+    "gs://youtube8m-ml-us-east1/1/{3}_level/{4}/{5}*.tfrecord" \\
     {6} \\
-    {7} \\
-    --train_dir=$BUCKET_NAME/{8} \\'''.format \
+    --train_dir=$BUCKET_NAME/{7} \\
+    {8}'''.format \
         (option, option, data_pattern, 'frame' if isFrameLevel() else 'video', \
-         tfrecord, tfrecord, getModelParams(), output_file, getModelPath())
+         tfrecord, tfrecord, getModelParams(), getModelPath(), output_file)
 
 def getModelParams():
     model_param = '--model={}'.format(model)
@@ -71,7 +72,7 @@ def getModelParams():
     {} \\
     --feature_names="{}rgb, {}audio" \\
     --feature_sizes="1024, 128" \\
-    --batch_size=512'''.format \
+    --batch_size=256'''.format \
         (frame_level, model_param, feature_prefix, feature_prefix)
 
 def isFrameLevel():
