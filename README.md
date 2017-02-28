@@ -3,7 +3,7 @@
 Group members: Murat Turkeli, Tyler Kohan, Yunsheng Bai
 
 This repo is a fork of [the starter repo](https://github.com/google/youtube-8m).
-It is both for a [Kaggle challenge](https://www.kaggle.com/c/youtube8m) 
+It is for both a [Kaggle challenge](https://www.kaggle.com/c/youtube8m) 
 and the final project of `EECS 351` at UM Ann Arbor.
 
 This repo contains code for training and evaluating machine learning
@@ -318,8 +318,7 @@ curl data.yt8m.org/download.py | shard=1,100 partition=1/frame_level/train mirro
 To start training a logistic model on the video-level features, run
 
 ```sh
-MODEL_DIR=/tmp/yt8m
-python train.py --train_data_pattern='/path/to/features/train*.tfrecord' --train_dir=$MODEL_DIR/video_level_logistic_model
+python train.py --train_data_pattern='../data/train*.tfrecord' --train_dir=../model/video_level_logistic_model
 ```
 
 Since the dataset is sharded into 4096 individual files, we use a wildcard (\*)
@@ -338,7 +337,7 @@ adding `--start_new_model` flag to your run configuration.
 To evaluate the model, run
 
 ```sh
-python eval.py --eval_data_pattern='/path/to/features/validate*.tfrecord' --train_dir=$MODEL_DIR/video_level_logistic_model --run_once=True
+python eval.py --eval_data_pattern='../data/validate*.tfrecord' --train_dir=../model/video_level_logistic_model --run_once=True
 ```
 
 As the model is training or evaluating, you can view the results on tensorboard
@@ -354,7 +353,7 @@ When you are happy with your model, you can generate a csv file of predictions
 from it by running
 
 ```sh
-python inference.py --output_file=$MODEL_DIR/video_level_logistic_model/predictions.csv --input_data_pattern='/path/to/features/test*.tfrecord' --train_dir=$MODEL_DIR/video_level_logistic_model
+python inference.py --output_file=../model/video_level_logistic_model/predictions.csv --input_data_pattern='../data/test*.tfrecord' --train_dir=../model/video_level_logistic_model
 ```
 
 This will output the top 20 predicted labels from the model for every example
@@ -427,11 +426,15 @@ This sample code contains implementations of the models given in the
 
 ### `data/`
 
-Datasets that should never be committed to Github. See [instructions above]((#testing-locally)) on how to download.
+Datasets that should never be committed to Github. See [instructions above](#testing-locally) on how to download.
 
-### `deliverable`
+### `deliverable/`
 
 Documens for team communication and final submission.
+
+### `model/`
+
+Models that should never be committed to Github.
 
 ### `src/`
 
