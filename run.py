@@ -60,8 +60,7 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     --train_dir=$BUCKET_NAME/{} \\
     {} {}'''.format \
         (option, option, data_pattern, 'frame' if isFrameLevel() else 'video', \
-         tfrecord, tfrecord, getModelPath(), \
-         getModelParams(), output_file)
+         tfrecord, tfrecord, getModelParams(), output_file)
 
 def getModelParams():
     model_param = '--model={}'.format(model)
