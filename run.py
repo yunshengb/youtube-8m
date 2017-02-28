@@ -1,6 +1,14 @@
 model = 'LstmModel'
-option = 'i'
+option = 't'
 machine = 'remote'
+
+'''
+LogisticModel
+MoeModel
+FrameLevelLogisticModel
+DbofModel
+LstmModel
+'''
 
 def main():
     option_msg = 'option must be "t" for train, ' \
@@ -49,7 +57,7 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     --staging-bucket=$BUCKET_NAME --region=us-east1 \\
     --config=src/cloudml-gpu.yaml \\
     -- --{}_data_pattern="gs://youtube8m-ml-us-east1/1/{}_level/{}*.tfrecord" \\
-    --train_dir=$BUCKET_NAME/{}' \\
+    --train_dir=$BUCKET_NAME/{} \\
     {} {}'''.format \
         (option, option, data_pattern, 'frame' if isFrameLevel() else 'video', \
          tfrecord, tfrecord, getModelPath(), \
