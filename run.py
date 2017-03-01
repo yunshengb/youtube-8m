@@ -1,5 +1,6 @@
-option = 'i'
-model = 'DbofModel'
+option = 't'
+model = 'MoeModel'
+batch = 512
 machine = 'remote'
 
 '''
@@ -71,8 +72,8 @@ def getModelParams():
     {} \\
     --feature_names="{}rgb, {}audio" \\
     --feature_sizes="1024, 128" \\
-    --batch_size=256'''.format \
-        (frame_level, model_param, feature_prefix, feature_prefix)
+    --batch_size={}'''.format \
+        (frame_level, model_param, feature_prefix, feature_prefix, batch)
 
 def isFrameLevel():
     video_level_models = getModelNames('video_level_models')
