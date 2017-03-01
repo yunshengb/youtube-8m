@@ -24,7 +24,6 @@ from tensorflow import app
 from tensorflow import flags
 from tensorflow import gfile
 from tensorflow import logging
-from builtins import range
 
 import eval_util
 import losses
@@ -123,7 +122,7 @@ def inference(reader, train_dir, data_pattern, out_file_location, batch_size, to
     else:
       meta_graph_location = latest_checkpoint + ".meta"
       logging.info("loading meta-graph: " + meta_graph_location)
-    saver = tf.train.import_meta_graph(meta_graph_location)
+    saver = tf.train.import_meta_graph(meta_graph_location, clear_devices=True)
     logging.info("restoring variables from " + latest_checkpoint)
     saver.restore(sess, latest_checkpoint)
     input_tensor = tf.get_collection("input_batch_raw")[0]
@@ -132,11 +131,13 @@ def inference(reader, train_dir, data_pattern, out_file_location, batch_size, to
 
     # Workaround for num_epochs issue.
     def set_up_init_ops(variables):
-      for variable in variables:
+      init_op_list = []
+      for variable in list(variables):
         if "train_input" in variable.name:
-          init_num_epochs = tf.assign(variable, 1)
+          init_op_list.append(tf.assign(variable, 1))
           variables.remove(variable)
-          return [init_num_epochs, tf.variables_initializer(variables)]
+      init_op_list.append(tf.variables_initializer(variables))
+      return init_op_list
 
     sess.run(set_up_init_ops(tf.get_collection_ref(
         tf.GraphKeys.LOCAL_VARIABLES)))
