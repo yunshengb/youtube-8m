@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 option = 't'
 model = 'MoeModel'
 batch = 512
@@ -9,6 +10,12 @@ MoeModel
 FrameLevelLogisticModel
 DbofModel
 LstmModel
+'''
+
+'''
+NN model:
+    train: batch <= 256
+    infer: batch <= 512
 '''
 
 def main():
