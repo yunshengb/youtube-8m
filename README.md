@@ -3,7 +3,7 @@
 Group members: Murat Turkeli, Tyler Kohan, Yunsheng Bai
 
 This repo is a fork of [the starter repo](https://github.com/google/youtube-8m).
-It is for both a [Kaggle challenge](https://www.kaggle.com/c/youtube8m) 
+It is for a [Kaggle challenge](https://www.kaggle.com/c/youtube8m) 
 and the final project of `EECS 351` at UM Ann Arbor.
 
 This repo contains code for training and evaluating machine learning
@@ -275,7 +275,7 @@ running training, evaluation, or inference.
 
 ### Requirements
 
-The starter code requires Tensorflow. If you haven't installed it yet, follow
+The code requires Tensorflow. If you haven't installed it yet, follow
 the instructions on [tensorflow.org](https://www.tensorflow.org/install/).
 This code has been tested with Tensorflow 1.0.0. Going forward, we will continue
 to target the latest released version of Tensorflow.
@@ -480,6 +480,6 @@ Source code that can be split into:
 *   `run.py`: Configuration and running script. Modify and execute it `python run.py`.
 
 ## About This Project
-This project is meant help people quickly get started working with the
+This project works with the
 [YouTube-8M](https://research.google.com/youtube8m/) dataset.
-This is not an official Google product.
+The original repo is not an official Google product.

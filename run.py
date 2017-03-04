@@ -1,86 +1,82 @@
 #!/usr/bin/env python
 option = 't'
 model = 'MoeModel'
-batch = 512
-machine = 'remote'
+batch = None
+local = False
 
 '''
-LogisticModel
-MoeModel
-FrameLevelLogisticModel
-DbofModel
-LstmModel
-'''
-
-'''
-NN model:
-    train: batch <= 256
-    infer: batch <= 512
+option: 't' | 'e' | 'i'
+model: 'LogisticModel' | 'MoeModel' | 'FrameLevelLogisticModel' | 'DbofModel' |
+       'LstmModel'
+batch: None | [integer]
+local: True | False
 '''
 
 def main():
-    option_msg = 'option must be "t" for train, ' \
-                 '"e" for evaluate, or "i" for infer'
-    if machine == 'local':
+    msg = 'option must be "t" for train, "e" for evaluate, or "i" for infer'
+    if local:
         if option == 't':
             execute('rm -rf model/{}'.format(getModelPath()))
             execute(getLocalCmd('train', 'train', 'train'))
         elif option == 'e':
             execute(getLocalCmd('eval', 'eval', 'validate'))
         elif option == 'i':
-            execute(getLocalCmd('inference', 'input', 'test', \
-                                 '--output_file=model/{}/predictions.csv' \
+            execute(getLocalCmd('inference', 'input', 'test',
+                                 '--output_file=model/{}/predictions.csv'
                                  .format(getModelPath())))
         else:
-            print option_msg
-    elif machine == 'remote':
+            print msg
+    else:
         if option == 't':
             execute(getRemoteCmd('train', 'train', 'train'))
         elif option == 'e':
             execute(getRemoteCmd('eval', 'eval', 'validate'))
         elif option == 'i':
-            execute(getRemoteCmd('inference', 'input', 'test', \
-                                 '--output_file=$BUCKET_NAME/{}/predictions.csv' \
+            execute(getRemoteCmd('inference', 'input', 'test',
+                                 '--output_file=$BUCKET_NAME/{}/predictions.csv'
                                  .format(getModelPath())))
         else:
-            print option_msg
-    else:
-        print 'machine must be "local" or "remote"'
+            print msg
 
 def getLocalCmd(option, data_pattern, tfrecord, output_file=''):
-    return '''python src/{0}.py \\
-    --{1}_data_pattern="data/{2}/{3}*.tfrecord" \\
-    --train_dir=model/{4} \\
-    {5} {6}'''.format \
-        (option, data_pattern, 'frame' if isFrameLevel() else 'video', \
-         tfrecord, getModelPath(), getModelParams(), \
-         output_file)
+    f_type = 'frame' if isFrameLevel() else 'video'
+    params = synthesizeParam(
+        [('%s_data_pattern' % data_pattern,
+          '"data/%s/%s*.tfrecord"' % (f_type, tfrecord)),
+         ('train_dir', 'model/%s' % getModelPath())])
+    return '\t'.join(('python src/%s.py \\\n' % option, params,
+                      getModelParams(), output_file))
 
 def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
-    return '''BUCKET_NAME=gs://${{USER}}_yt8m_train_bucket;
-    JOB_NAME=yt8m_{0}_$(date +%Y%m%d_%H%M%S);
-    gcloud --verbosity=debug beta ml jobs \\
-    submit training $JOB_NAME \\
-    --package-path=src --module-name=src.{1} \\
-    --staging-bucket=$BUCKET_NAME --region=us-east1 \\
-    --config=src/cloudml-gpu.yaml \\
-    -- --{2}_data_pattern="gs://youtube8m-ml-us-east1/1/{3}_level/{4}/{5}*.tfrecord" \\
-    {6} \\
-    --train_dir=$BUCKET_NAME/{7} \\
-    {8}'''.format \
-        (option, option, data_pattern, 'frame' if isFrameLevel() else 'video', \
-         tfrecord, tfrecord, getModelParams(), getModelPath(), output_file)
+    f_type = 'frame' if isFrameLevel() else 'video'
+    params = synthesizeParam(
+        [('package-path', 'src'),
+         ('module-name', 'src.%s' % option),
+         ('staging-bucket', '$BUCKET_NAME'),
+         ('region', 'us-east1'),
+         ('config', 'src/cloudml-gpu.yaml'),
+         (' --%s_data_pattern' % data_pattern,
+          '"gs://youtube8m-ml-us-east1/1/%s_level/%s/%s*.tfrecord"' %
+          (f_type, tfrecord, tfrecord)),
+         ('train_dir', '$BUCKET_NAME/%s' % getModelPath())])
+    return '\t'.join(('BUCKET_NAME=gs://${USER}_yt8m_train_bucket;\n',
+    'JOB_NAME=yt8m_{0}_$(date +%Y%m%d_%H%M%S);\n',
+    'gcloud --verbosity=debug beta ml jobs \\\n',
+    'submit training $JOB_NAME \\\n', params, getModelParams(), output_file))
 
 def getModelParams():
-    model_param = '--model={}'.format(model)
     frame_level = isFrameLevel()
-    feature_prefix = 'mean_' if not frame_level else ''
-    return '''--frame_features={} \\
-    {} \\
-    --feature_names="{}rgb, {}audio" \\
-    --feature_sizes="1024, 128" \\
-    --batch_size={}'''.format \
-        (frame_level, model_param, feature_prefix, feature_prefix, batch)
+    prefix = 'mean_' if not frame_level else ''
+    params = [('frame_features', frame_level),
+         ('model', model),
+         ('feature_names', '"%srgb, %saudio"' % (prefix, prefix)),
+         ('feature_sizes', '"1024, 128"')]
+    if batch:
+        params.append(('batch_size', batch))
+    return synthesizeParam(params)
+
+def synthesizeParam(params):
+    return '\t'.join(['--%s=%s \\\n' % (p, v) for p, v in params])
 
 def isFrameLevel():
     video_level_models = getModelNames('video_level_models')
