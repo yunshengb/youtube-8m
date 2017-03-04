@@ -477,7 +477,7 @@ Source code that can be split into:
 
 *   `README.md`: This documentation.
 *   `try.ipynb`: Python script for quick experiment.
-*   `run.py`: Configuration and running script. Modify and execute it `python run.py`.
+*   `run.py`: Configuration and running script. Modify and execute it `./run.py`.
 
 ## About This Project
 This project works with the

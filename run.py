@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-option = 't'
+option = 'i'
 model = 'MoeModel'
 batch = None
 local = False
+extra = 'moe_num_mixtures', 4
 
 '''
 option: 't' | 'e' | 'i'
@@ -49,8 +50,7 @@ def getLocalCmd(option, data_pattern, tfrecord, output_file=''):
 
 def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     f_type = 'frame' if isFrameLevel() else 'video'
-    params = synthesizeParam(
-        [('package-path', 'src'),
+    params = [('package-path', 'src'),
          ('module-name', 'src.%s' % option),
          ('staging-bucket', '$BUCKET_NAME'),
          ('region', 'us-east1'),
@@ -58,11 +58,14 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
          (' --%s_data_pattern' % data_pattern,
           '"gs://youtube8m-ml-us-east1/1/%s_level/%s/%s*.tfrecord"' %
           (f_type, tfrecord, tfrecord)),
-         ('train_dir', '$BUCKET_NAME/%s' % getModelPath())])
+         ('train_dir', '$BUCKET_NAME/%s' % getModelPath())]
+    if extra:
+        params.append((extra[0], extra[1]))
     return '\t'.join(('BUCKET_NAME=gs://${USER}_yt8m_train_bucket;\n',
     'JOB_NAME=yt8m_{0}_$(date +%Y%m%d_%H%M%S);\n',
     'gcloud --verbosity=debug beta ml jobs \\\n',
-    'submit training $JOB_NAME \\\n', params, getModelParams(), output_file))
+    'submit training $JOB_NAME \\\n', synthesizeParam(params), getModelParams(),
+                      output_file))
 
 def getModelParams():
     frame_level = isFrameLevel()
@@ -73,6 +76,8 @@ def getModelParams():
          ('feature_sizes', '"1024, 128"')]
     if batch:
         params.append(('batch_size', batch))
+    if extra:
+        params.append((extra[0], extra[1]))
     return synthesizeParam(params)
 
 def synthesizeParam(params):
