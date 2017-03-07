@@ -5,12 +5,14 @@ batch = None
 local = False
 extra = 'moe_num_mixtures', 4
 
+
 '''
 option: 't' | 'e' | 'i'
 model: 'LogisticModel' | 'MoeModel' | 'FrameLevelLogisticModel' | 'DbofModel' |
        'LstmModel'
 batch: None | [integer]
 local: True | False
+extra (parameter): '' | [name], [value]
 '''
 
 
