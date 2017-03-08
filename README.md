@@ -23,6 +23,7 @@ or on your own machine. This README provides instructions for both.
    * [Testing Locally](#testing-locally)
    * [Training on the Cloud over Video-Level Features](#training-on-video-level-features)
    * [Evaluation and Inference](#evaluation-and-inference)
+   * [Inference Using Batch Prediction](#inference-using-batch-prediction)
    * [Accessing Files on Google Cloud](#accessing-files-on-google-cloud)
    * [Using Frame-Level Features](#using-frame-level-features)
    * [Using Audio Features](#using-audio-features)
@@ -73,10 +74,10 @@ You can use the `gcloud beta ml local` set of commands for that.
 Here is an example command line for video-level training:
 
 ```sh
-gcloud beta ml local train \
+gcloud ml-engine local train \
 --package-path=youtube-8m --module-name=youtube-8m.train -- \
 --train_data_pattern='gs://youtube8m-ml/1/video_level/train/train*.tfrecord' \
---train_dir=/tmp/yt8m_train --start_new_model
+--train_dir=/tmp/yt8m_train --model=LogisticModel --start_new_model
 ```
 
 You might want to download some training, validating, and testing shards locally to speed things up and
@@ -110,12 +111,13 @@ BUCKET_NAME=gs://${USER}_yt8m_train_bucket
 # (One Time) Create a storage bucket to store training logs and checkpoints.
 gsutil mb -l us-east1 $BUCKET_NAME
 # Submit the training job.
-JOB_NAME=yt8m_train_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug beta ml jobs \
+JOB_NAME=yt8m_train_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
 --package-path=youtube-8m --module-name=youtube-8m.train \
 --staging-bucket=$BUCKET_NAME --region=us-east1 \
 --config=youtube-8m/cloudml-gpu.yaml \
 -- --train_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/train/train*.tfrecord' \
+--model=LogisticModel \
 --train_dir=$BUCKET_NAME/yt8m_train_video_level_logistic_model
 ```
 
@@ -156,12 +158,13 @@ Here's how to evaluate a model on the validation dataset:
 
 ```sh
 JOB_TO_EVAL=yt8m_train_video_level_logistic_model
-JOB_NAME=yt8m_eval_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug beta ml jobs \
+JOB_NAME=yt8m_eval_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
 --package-path=youtube-8m --module-name=youtube-8m.eval \
 --staging-bucket=$BUCKET_NAME --region=us-east1 \
 --config=youtube-8m/cloudml-gpu.yaml \
 -- --eval_data_pattern='gs://youtube8m-ml-us-east1/1/video_level/validate/validate*.tfrecord' \
+--model=LogisticModel \
 --train_dir=$BUCKET_NAME/${JOB_TO_EVAL} --run_once=True
 ```
 
@@ -169,7 +172,7 @@ And here's how to perform inference with a model on the test set:
 
 ```sh
 JOB_TO_EVAL=yt8m_train_video_level_logistic_model
-JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug beta ml jobs \
+JOB_NAME=yt8m_inference_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
 --package-path=youtube-8m --module-name=youtube-8m.inference \
 --staging-bucket=$BUCKET_NAME --region=us-east1 \
@@ -199,6 +202,62 @@ and the following for the inference code:
 num examples processed: 8192 elapsed seconds: 14.85
 ```
 
+### Inference Using Batch Prediction
+To perform inference faster, you can also use the Cloud ML batch prediction
+service.
+
+First, find the directory where the training job exported the model:
+
+```
+gsutil list ${BUCKET_NAME}/yt8m_train_video_level_logistic_model/export
+```
+
+You should see an output similar to this one:
+
+```
+${BUCKET_NAME}/yt8m_train_video_level_logistic_model/export/
+${BUCKET_NAME}/yt8m_train_video_level_logistic_model/export/step_1/
+${BUCKET_NAME}/yt8m_train_video_level_logistic_model/export/step_1001/
+${BUCKET_NAME}/yt8m_train_video_level_logistic_model/export/step_2001/
+${BUCKET_NAME}/yt8m_train_video_level_logistic_model/export/step_3001/
+```
+
+Select the latest version of the model that was saved. For instance, in our
+case, we select the version of the model that was saved at step 3001:
+
+```
+EXPORTED_MODEL_DIR=${BUCKET_NAME}/yt8m_train_video_level_logistic_model/export/step_3001/
+```
+
+Start the batch prediction job using the following command:
+
+```
+JOB_NAME=yt8m_batch_predict_$(date +%Y%m%d_%H%M%S); \
+gcloud ml-engine jobs submit prediction ${JOB_NAME} --verbosity=debug \
+--model-dir=${EXPORTED_MODEL_DIR} --data-format=TF_RECORD \
+--input-paths=gs://youtube8m-ml/1/video_level/test/test* \
+--output-path=${BUCKET_NAME}/batch_predict/${JOB_NAME} --region=us-east1 \
+--runtime-version=1.0 --max-worker-count=10
+```
+
+You can check the progress of the job on the
+[Google Cloud ML Jobs console](https://console.cloud.google.com/ml/jobs). To
+have the job complete faster, you can increase 'max-worker-count' to a
+higher value.
+
+Once the batch prediction job has completed, turn its output into a submission
+in the CVS format by running the following commands:
+
+```
+# Copy the output of the batch prediction job to a local directory
+mkdir -p /tmp/batch_predict/${JOB_NAME}
+gsutil -m cp -r ${BUCKET_NAME}/batch_predict/${JOB_NAME}/* /tmp/batch_predict/${JOB_NAME}/
+
+# Convert the output of the batch prediction job into a CVS file ready for submission
+python youtube-8m/convert_prediction_from_json_to_csv.py \
+--json_prediction_files_pattern="/tmp/batch_predict/${JOB_NAME}/prediction.results-*" \
+--csv_output_file="/tmp/batch_predict/${JOB_NAME}/output.csv"
+```
 
 ### Accessing Files on Google Cloud
 
@@ -228,14 +287,14 @@ to the 'gcloud' commands given above, and change 'video_level' in paths to
 'frame_level'. Here is a sample command to kick-off a frame-level job:
 
 ```sh
-JOB_NAME=yt8m_train_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug beta ml jobs \
+JOB_NAME=yt8m_train_$(date +%Y%m%d_%H%M%S); gcloud --verbosity=debug ml-engine jobs \
 submit training $JOB_NAME \
 --package-path=youtube-8m --module-name=youtube-8m.train \
 --staging-bucket=$BUCKET_NAME --region=us-east1 \
 --config=youtube-8m/cloudml-gpu.yaml \
 -- --train_data_pattern='gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord' \
 --frame_features=True --model=FrameLevelLogisticModel --feature_names="rgb" \
---feature_sizes="1024" --batch_size=256 \
+--feature_sizes="1024" --batch_size=128 \
 --train_dir=$BUCKET_NAME/yt8m_train_frame_level_logistic_model
 ```
 
@@ -455,6 +514,8 @@ Source code that can be split into:
                              level features as input.
 *   `model_util.py`: Contains functions that are of general utility for
                      implementing models.
+*   `export_model.py`: Provides a class to export a model during training
+                       for later use in batch prediction.
 *   `readers.py`: Contains definitions for the Video dataset and Frame
                   dataset readers.
 
@@ -472,6 +533,8 @@ Source code that can be split into:
 
 #### Misc
 *   `utils.py`: Common functions.
+*   `convert_prediction_from_json_to_csv.py`: Converts the JSON output of
+        batch prediction into a CSV file for submission.
 
 ### Top level:
 
