@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-option = 'i'
+option = 't'
 model = 'MoeModel'
 batch = None
-local = False
-extra = 'moe_num_mixtures', 4
+local = True
+extra = 'moe_num_mixtures', 7
 
 
 '''
@@ -68,7 +68,7 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
         params.append((extra[0], extra[1]))
     return '\t'.join(('BUCKET_NAME=gs://${USER}_yt8m_train_bucket;\n',
                       'JOB_NAME=yt8m_{}_$(date +%Y%m%d_%H%M%S);\n'.format(option),
-                      'gcloud --verbosity=debug beta ml jobs \\\n',
+                      'gcloud --verbosity=debug ml-engine jobs \\\n',
                       'submit training $JOB_NAME \\\n', synthesizeParam(params),
                       getModelParams(),
                       output_file))

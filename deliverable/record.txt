@@ -37,3 +37,11 @@ result: 17 0.79067 03082017_MoeModelLeaderboard.png
 comment: 6 experts (8 hr training)
 --------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+model: MoeModel
+logs: yt8m_train_20170308_230501 yt8m_inference_20170308_235354
+result: 18 0.78709 (not better)
+comment: 8 experts (10 hr training; completed automatically)
+--------------------------------------------------------------------------------
+
+

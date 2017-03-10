@@ -38,10 +38,15 @@ or on your own machine. This README provides instructions for both.
    * [Video-Level Models](#video-level-models)
    * [Frame-Level Models](#frame-level-models)
 * [Overview of Files](#overview-of-files)
-   * [Training](#training)
-   * [Evaluation](#evaluation)
-   * [Inference](#inference)
-   * [Misc](#misc)
+   * [Data](#`data/`)
+   * [Deliverable](#`deliverable/`)
+   * [Model](#`model/`)
+   * [Source Code](#`src/`)
+        * [Training](#training)
+        * [Evaluation](#evaluation)
+        * [Inference](#inference)
+        * [Misc](#misc)
+   * [Top Level](#Top Level)
 * [About This Project](#about-this-project)
 
 ## Running on Google's Cloud Machine Learning Platform
@@ -536,7 +541,7 @@ Source code that can be split into:
 *   `convert_prediction_from_json_to_csv.py`: Converts the JSON output of
         batch prediction into a CSV file for submission.
 
-### Top level:
+### Top Level
 
 *   `README.md`: This documentation.
 *   `try.ipynb`: Python script for quick experiment.
