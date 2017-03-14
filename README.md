@@ -46,7 +46,7 @@ or on your own machine. This README provides instructions for both.
         * [Evaluation](#evaluation)
         * [Inference](#inference)
         * [Misc](#misc)
-   * [Top Level](#Top Level)
+   * [Top Level](#top-level)
 * [About This Project](#about-this-project)
 
 ## Running on Google's Cloud Machine Learning Platform

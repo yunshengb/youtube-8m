@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 option = 't'
-model = 'MoeModel'
-batch = None
+model = 'LstmModel'
+batch = 128
 local = True
-extra = 'moe_num_mixtures', 7
+extra = '' # 'moe_num_mixtures', 7
 
 
 '''

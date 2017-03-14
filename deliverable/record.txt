@@ -44,4 +44,16 @@ result: 18 0.78709 (not better)
 comment: 8 experts (10 hr training; completed automatically)
 --------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+model: MoeModel
+logs: yt8m_train_20170309_235339 yt8m_inference_20170311_004551
+result: 18 0.79213 03112017_MoeModelLeaderboard.png
+comment: 7 experts (10 hr training; completed automatically)
+--------------------------------------------------------------------------------
 
+--------------------------------------------------------------------------------
+model: LstmModel
+logs: yt8m_train_20170311_140557 yt8m_inference_20170313_003336
+result: 20 0.77906 (not better)
+comment: 1 day 9 hr training
+--------------------------------------------------------------------------------
