@@ -64,8 +64,6 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
                '"gs://youtube8m-ml-us-east1/1/%s_level/%s/%s*.tfrecord"' %
                (f_type, tfrecord, tfrecord)),
               ('train_dir', '$BUCKET_NAME/%s' % getModelPath())]
-    if extra:
-        params.append((extra[0], extra[1]))
     return '\t'.join(('BUCKET_NAME=gs://${USER}_yt8m_train_bucket;\n',
                       'JOB_NAME=yt8m_{}_$(date +%Y%m%d_%H%M%S);\n'.format(option),
                       'gcloud --verbosity=debug ml-engine jobs \\\n',
