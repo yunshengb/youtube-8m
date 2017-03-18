@@ -517,6 +517,9 @@ Source code that can be split into:
                              aggregated features as input.
 *   `frame_level_models.py`: Contains definitions for models that take frame-
                              level features as input.
+*   `tkohan_models.py`: Contains definitions for Tyler's models.
+*   `mturkeli_models.py`: Contains definitions for Murat's models.
+*   `yba_models.py`: Contains definitions for Yunsheng's models.
 *   `model_util.py`: Contains functions that are of general utility for
                      implementing models.
 *   `export_model.py`: Provides a class to export a model during training

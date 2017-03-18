@@ -1,19 +1,26 @@
 #!/usr/bin/env python
 option = 't'
-model = 'LstmModel'
-batch = 128
+model = 'MyModel_mturkeli'
 local = True
-extra = '' # 'moe_num_mixtures', 7
+batch = None
+extra = None # 'moe_num_mixtures', 7
 
 
 '''
 option: 't' | 'e' | 'i'
 model: 'LogisticModel' | 'MoeModel' | 'FrameLevelLogisticModel' | 'DbofModel' |
        'LstmModel'
-batch: None | [integer]
+batch: None (default batch size) | [integer]
 local: True | False
-extra (parameter): '' | [name], [value]
+extra (parameter): None (no extra parameter) | [name], [value]
 '''
+
+
+import src.video_level_models
+import src.frame_level_models
+import src.yba_models
+import src.tkohan_models
+import src.mturkeli_models
 
 
 def main():
@@ -44,6 +51,8 @@ def main():
 
 
 def getLocalCmd(option, data_pattern, tfrecord, output_file=''):
+    if isOurModel():
+        return isOurModel().local_cmd
     f_type = 'frame' if isFrameLevel() else 'video'
     params = synthesizeParam(
         [('%s_data_pattern' % data_pattern,
@@ -54,6 +63,8 @@ def getLocalCmd(option, data_pattern, tfrecord, output_file=''):
 
 
 def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
+    if isOurModel():
+        return isOurModel().remote_cmd
     f_type = 'frame' if isFrameLevel() else 'video'
     params = [('package-path', 'src'),
               ('module-name', 'src.%s' % option),
@@ -70,6 +81,22 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
                       'submit training $JOB_NAME \\\n', synthesizeParam(params),
                       getModelParams(),
                       output_file))
+
+
+def isOurModel():
+    yba_models = getModelNames('yba_models')
+    mturkeli_models = getModelNames('mturkeli_models')
+    tkohan_models = getModelNames('tkohan_models')
+    if model in yba_models:
+        user = 'yba'
+    elif model in mturkeli_models:
+        user = 'mturkeli'
+    elif model in tkohan_models:
+        user = 'tkohan'
+    else:
+        return False
+    assert(user in model)
+    return eval('src.%s_models.%s' % (user, model))
 
 
 def getModelParams():
@@ -102,14 +129,12 @@ def isFrameLevel():
     elif model in frame_level_models:
         frame_level = True
     else:
-        print 'Cannot find model', model
+        print 'Unrecognized model', model
         exit(1)
     return frame_level
 
 
 def getModelNames(file):
-    import src.video_level_models
-    import src.frame_level_models
     import sys, inspect
     rtn = []
     for name, obj in inspect.getmembers(sys.modules['src.{}'.format(file)]):
