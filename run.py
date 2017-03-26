@@ -3,7 +3,7 @@ option = 't'
 model = 'MyModel_mturkeli'
 local = True
 batch = None
-extra = None # 'moe_num_mixtures', 7
+extra = 'moe_num_mixtures', 7
 
 
 '''
@@ -52,7 +52,7 @@ def main():
 
 def getLocalCmd(option, data_pattern, tfrecord, output_file=''):
     if isOurModel():
-        return isOurModel().local_cmd
+        return isOurModel().getLocalCmd()
     f_type = 'frame' if isFrameLevel() else 'video'
     params = synthesizeParam(
         [('%s_data_pattern' % data_pattern,
@@ -64,7 +64,7 @@ def getLocalCmd(option, data_pattern, tfrecord, output_file=''):
 
 def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     if isOurModel():
-        return isOurModel().remote_cmd
+        return isOurModel().getLocalCmd()
     f_type = 'frame' if isFrameLevel() else 'video'
     params = [('package-path', 'src'),
               ('module-name', 'src.%s' % option),
@@ -99,8 +99,11 @@ def isOurModel():
     return eval('src.%s_models.%s' % (user, model))
 
 
-def getModelParams():
-    frame_level = isFrameLevel()
+def getModelParams(frame_level_ = False):
+    if isOurModel():
+        frame_level = frame_level_
+    else:
+        frame_level = isFrameLevel()
     prefix = 'mean_' if not frame_level else ''
     params = [('frame_features', frame_level),
               ('model', model),
