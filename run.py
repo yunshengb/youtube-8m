@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 option = 't'
-model = 'MyModel_mturkeli'
+model = 'LstmModel'
 local = True
-batch = None
-extra = 'moe_num_mixtures', 7
+batch = 128
+extra = [('moe_num_mixtures', 7), ('lstm_layers', 5),
+         (('base_learning_rate', 0.0001))]
 
+'''
+('moe_num_mixtures', 7)
+('base_learning_rate', 0.0001)
+('lstm_layers', 5)
+'''
 
 '''
 option: 't' | 'e' | 'i'
@@ -12,7 +18,7 @@ model: 'LogisticModel' | 'MoeModel' | 'FrameLevelLogisticModel' | 'DbofModel' |
        'LstmModel'
 batch: None (default batch size) | [integer]
 local: True | False
-extra (parameter): None (no extra parameter) | [name], [value]
+extra (parameter): None (no extra parameter) | [([name], [value]), ...]
 '''
 
 
@@ -112,7 +118,8 @@ def getModelParams(frame_level_ = False):
     if batch:
         params.append(('batch_size', batch))
     if extra:
-        params.append((extra[0], extra[1]))
+        for i in extra:
+            params.append(i)
     return synthesizeParam(params)
 
 
