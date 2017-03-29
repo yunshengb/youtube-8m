@@ -5,6 +5,7 @@ local = True
 batch = 128
 extra = [('moe_num_mixtures', 7), ('lstm_layers', 5),
          (('base_learning_rate', 0.0001))]
+save = 'Save'
 
 '''
 ('moe_num_mixtures', 7)
@@ -154,7 +155,7 @@ def getModelNames(file):
 
 
 def getModelPath():
-    return model + 'Save'
+    return model + save
 
 
 def execute(cmd):
