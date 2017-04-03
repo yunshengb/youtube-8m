@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 option = 't'
-model = 'LstmModel'
-local = True
-batch = 128
+model = 'MyModel_mturkeli'
+local = False
+batch = None
 extra = [('moe_num_mixtures', 7), ('lstm_layers', 5),
          (('base_learning_rate', 0.0001))]
 save = 'Save'
@@ -16,7 +16,7 @@ save = 'Save'
 '''
 option: 't' | 'e' | 'i'
 model: 'LogisticModel' | 'MoeModel' | 'FrameLevelLogisticModel' | 'DbofModel' |
-       'LstmModel'
+       'LstmModel' | 'MyModel_mturkeli'
 batch: None (default batch size) | [integer]
 local: True | False
 extra (parameter): None (no extra parameter) | [([name], [value]), ...]
@@ -71,7 +71,7 @@ def getLocalCmd(option, data_pattern, tfrecord, output_file=''):
 
 def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
     if isOurModel():
-        return isOurModel().getLocalCmd()
+        return isOurModel().getRemoteCmd()
     f_type = 'frame' if isFrameLevel() else 'video'
     params = [('package-path', 'src'),
               ('module-name', 'src.%s' % option),
