@@ -26,6 +26,7 @@ from tensorflow import flags
 from tensorflow import gfile
 from tensorflow import logging
 import utils
+import mturkeli_models
 
 FLAGS = flags.FLAGS
 
@@ -285,7 +286,7 @@ def evaluate():
                                                    feature_sizes=feature_sizes)
 
     model = find_class_by_name(FLAGS.model,
-        [frame_level_models, video_level_models])()
+        [frame_level_models, video_level_models, mturkeli_models])()
     label_loss_fn = find_class_by_name(FLAGS.label_loss, [losses])()
 
     if FLAGS.eval_data_pattern is "":
