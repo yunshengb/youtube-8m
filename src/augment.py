@@ -4,9 +4,10 @@ import numpy as np
 from tensorflow import gfile
 from tensorflow import logging
 from multiprocessing import Queue, Process
+from time import time
 from os import getpid
 from sklearn.preprocessing import normalize
-from Queue import Empty
+
 
 input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord'
 output_data_dir = 'gs://youtube_8m_video/'
@@ -23,7 +24,7 @@ def main():
         q.put(file)
     logging.info('Put ' + str(len(files)) + ' files to the queue')
     ps = []
-    for i in range(1):
+    for i in range(5):
         p = Process(target=worker_main, args=(q,))
         p.start()
         ps.append(p)
@@ -33,16 +34,14 @@ def main():
 
 def worker_main(q):
     logging.info('Worker ' + str(getpid()) + ' starts')
-    try:
-        i = 0
-        while True:
-            file = q.get(False)
-            logging.info('Worker ' + str(getpid()) + ' reads from ' + file)
-            generate_video_level_record(file, output_data_dir + file.split('/')[-1])
-            logging.info('Worker ' + str(getpid()) + ' has processed ' + str(i) + ' files')
-            i += 1
-    except Empty:
-        logging.info('Worker ' + str(getpid()) + ' done')
+    i = 0
+    while not q.empty():
+        file = q.get()
+        logging.info('Worker ' + str(getpid()) + ' reads from ' + file)
+        generate_video_level_record(file, output_data_dir + file.split('/')[-1])
+        logging.info('Worker ' + str(getpid()) + ' has processed ' + str(i) + ' files')
+        i += 1
+    logging.info('Worker ' + str(getpid()) + ' done')
 
 
 def video_level_record_check(input_file):
@@ -67,6 +66,7 @@ def generate_video_level_record(input_file, output_file):
     logging.info('Worker ' + str(getpid()) + ' writes to ' + str(output_file))
     num = 0
     for example in tf.python_io.tf_record_iterator(input_file):
+        t = time()
         tf_seq_example = tf.train.SequenceExample.FromString(example)
         tf_example = tf.train.Example.FromString(example)
         n_frames = len(tf_seq_example.feature_lists.feature_list['audio'].feature)
@@ -108,10 +108,11 @@ def generate_video_level_record(input_file, output_file):
             '5th_audio': float_feat(audio_stats_mat[6])
         }
         # Write to tfrecord.
-        num += 1
-        logging.info('Worker ' + str(getpid()) + ': ' + str(num) + ' videos')
         example = tf.train.Example(features=tf.train.Features(feature=feature))
         writer.write(example.SerializeToString())
+        num += 1
+        logging.info('Worker ' + str(getpid()) + ': %.2f ' %(time() - t) + \
+                     'sec; ' + str(num) + ' videos')
 
 
 def pad(a, s):
