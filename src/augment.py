@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow import gfile
 from tensorflow import logging
-from multiprocessing import Queue, Pool
+from multiprocessing import Queue, Process
 from os import getpid
 from sklearn.preprocessing import normalize
 
@@ -18,7 +18,13 @@ def main():
     for file in files:
         q.put(file)
     logging.info('Put ' + str(len(files)) + ' files to the queue')
-    Pool(3, worker_main, (q,))
+    ps = []
+    for i in range(1):
+        p = Process(target=worker_main, args=(q,))
+        p.start()
+        ps.append(p)
+    for p in ps:
+        p.join()
 
 
 def worker_main(q):
@@ -26,10 +32,11 @@ def worker_main(q):
     try:
         i = 0
         while True:
-            file = q.get(False)
+            file = q.get()
             logging.info('Worker ' + str(getpid()) + ' reads from ' + file)
             generate_video_level_record(file, 'gs://youtube_8m_video/' + file.split('/')[-1])
             logging.info('Worker ' + str(getpid()) + ' has processed ' + str(i) + ' files')
+            i += 1
     except Queue.Empty:
         logging.info('Worker ' + str(getpid()) + ' done')
 
@@ -54,50 +61,50 @@ def video_level_record_check(input_file):
 def generate_video_level_record(input_file, output_file):
     writer = tf.python_io.TFRecordWriter(output_file)
     logging.info('Worker ' + str(getpid()) + ' writes to ' + str(output_file))
-    for example in tf.python_io.tf_record_iterator(input_file):
-        tf_seq_example = tf.train.SequenceExample.FromString(example)
-        tf_example = tf.train.Example.FromString(example)
-        n_frames = len(tf_seq_example.feature_lists.feature_list['audio'].feature)
-        sess = tf.InteractiveSession()
-        rgb_frame = []
-        audio_frame = []
-        # iterate through frames.
-        for i in range(n_frames):
-            rgb_frame.append(tf.cast(tf.decode_raw(
-                tf_seq_example.feature_lists.feature_list['rgb'].feature[
-                    i].bytes_list.value[0], tf.uint8)
-                , tf.float32).eval())
-            audio_frame.append(tf.cast(tf.decode_raw(
-                tf_seq_example.feature_lists.feature_list['audio'].feature[
-                    i].bytes_list.value[0], tf.uint8)
-                , tf.float32).eval())
-        sess.close()
-        # Calculate mean, std, 1st-5th features.
-        rgb_mat = pad(np.array(rgb_frame).T, (1024, 300)) # (1024, 300)
-        audio_mat = pad(np.array(audio_frame).T, (128, 300)) # (128, 300)
-        rgb_stats_mat = get_stats_mat(rgb_mat) # (7, 1024)
-        audio_stats_mat = get_stats_mat(rgb_mat)  # (7, 1024)
-        feature = {
-            'video_id': tf_example.features.feature['video_id'],
-            'labels': tf_example.features.feature['labels'],
-            'mean_rgb': float_feat(rgb_stats_mat[0]),
-            'mean_audio': float_feat(audio_stats_mat[0]),
-            'std_rgb': float_feat(rgb_stats_mat[1]),
-            'std_audio': float_feat(audio_stats_mat[1]),
-            '1st_rgb': float_feat(rgb_stats_mat[2]),
-            '1st_audio': float_feat(audio_stats_mat[2]),
-            '2nd_rgb': float_feat(rgb_stats_mat[3]),
-            '2nd_audio': float_feat(audio_stats_mat[3]),
-            '3rd_rgb': float_feat(rgb_stats_mat[4]),
-            '3rd_audio': float_feat(audio_stats_mat[4]),
-            '4th_rgb': float_feat(rgb_stats_mat[5]),
-            '4th_audio': float_feat(audio_stats_mat[5]),
-            '5th_rgb': float_feat(rgb_stats_mat[6]),
-            '5th_audio': float_feat(audio_stats_mat[6])
-        }
-        # Write to tfrecord.
-        example = tf.train.Example(features=tf.train.Features(feature=feature))
-        writer.write(example.SerializeToString())
+    # for example in tf.python_io.tf_record_iterator(input_file):
+    #     tf_seq_example = tf.train.SequenceExample.FromString(example)
+    #     tf_example = tf.train.Example.FromString(example)
+    #     n_frames = len(tf_seq_example.feature_lists.feature_list['audio'].feature)
+    #     sess = tf.InteractiveSession()
+    #     rgb_frame = []
+    #     audio_frame = []
+    #     # iterate through frames.
+    #     for i in range(n_frames):
+    #         rgb_frame.append(tf.cast(tf.decode_raw(
+    #             tf_seq_example.feature_lists.feature_list['rgb'].feature[
+    #                 i].bytes_list.value[0], tf.uint8)
+    #             , tf.float32).eval())
+    #         audio_frame.append(tf.cast(tf.decode_raw(
+    #             tf_seq_example.feature_lists.feature_list['audio'].feature[
+    #                 i].bytes_list.value[0], tf.uint8)
+    #             , tf.float32).eval())
+    #     sess.close()
+    #     # Calculate mean, std, 1st-5th features.
+    #     rgb_mat = pad(np.array(rgb_frame).T, (1024, 300)) # (1024, 300)
+    #     audio_mat = pad(np.array(audio_frame).T, (128, 300)) # (128, 300)
+    #     rgb_stats_mat = get_stats_mat(rgb_mat) # (7, 1024)
+    #     audio_stats_mat = get_stats_mat(rgb_mat)  # (7, 1024)
+    #     feature = {
+    #         'video_id': tf_example.features.feature['video_id'],
+    #         'labels': tf_example.features.feature['labels'],
+    #         'mean_rgb': float_feat(rgb_stats_mat[0]),
+    #         'mean_audio': float_feat(audio_stats_mat[0]),
+    #         'std_rgb': float_feat(rgb_stats_mat[1]),
+    #         'std_audio': float_feat(audio_stats_mat[1]),
+    #         '1st_rgb': float_feat(rgb_stats_mat[2]),
+    #         '1st_audio': float_feat(audio_stats_mat[2]),
+    #         '2nd_rgb': float_feat(rgb_stats_mat[3]),
+    #         '2nd_audio': float_feat(audio_stats_mat[3]),
+    #         '3rd_rgb': float_feat(rgb_stats_mat[4]),
+    #         '3rd_audio': float_feat(audio_stats_mat[4]),
+    #         '4th_rgb': float_feat(rgb_stats_mat[5]),
+    #         '4th_audio': float_feat(audio_stats_mat[5]),
+    #         '5th_rgb': float_feat(rgb_stats_mat[6]),
+    #         '5th_audio': float_feat(audio_stats_mat[6])
+    #     }
+    #     # Write to tfrecord.
+    #     example = tf.train.Example(features=tf.train.Features(feature=feature))
+    #     writer.write(example.SerializeToString())
 
 
 def pad(a, s):
