@@ -34,7 +34,7 @@ def main():
         q.put(file)
     logging.info('Put ' + str(len(files)) + ' files to the queue')
     ps = []
-    for i in range(6):
+    for i in range(3):
         p = Process(target=worker_main, args=(q,))
         p.start()
         ps.append(p)
@@ -53,8 +53,8 @@ def worker_main(q):
             generate_video_level_record(file, output_data_dir +
                                         file.split('/')[-1])
             i += 1
-            logging.info('Worker ' + str(getpid()) + ' has processed ' +
-                         str(i) + ' files in %.2f sec' % (time()-t))
+            logging.info('Worker ' + str(getpid()) + ' processed ' +
+                         str(i) + 'th file in %.2f sec' % (time()-t))
     except Empty:
         logging.info('Worker ' + str(getpid()) + ' done')
 
@@ -163,7 +163,10 @@ def get_stats_mat(a):
 def normal(a):
     a = a - a.mean(axis=1, keepdims=True)
     # * 10 so it's closer to the provided video level feature values.
-    return normalize(a, axis=1, norm='l2') * 10
+    try:
+        return normalize(a, axis=1, norm='l2') * 10
+    except ValueError:
+        return a
 
 
 def byte_feat(value_list):
