@@ -6,7 +6,7 @@ from tensorflow import logging
 from multiprocessing import Queue, Process
 from os import getpid
 from sklearn.preprocessing import normalize
-
+from Queue import Empty
 
 input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord'
 
@@ -19,7 +19,7 @@ def main():
         q.put(file)
     logging.info('Put ' + str(len(files)) + ' files to the queue')
     ps = []
-    for i in range(5):
+    for i in range(1):
         p = Process(target=worker_main, args=(q,))
         p.start()
         ps.append(p)
@@ -32,12 +32,12 @@ def worker_main(q):
     try:
         i = 0
         while True:
-            file = q.get()
+            file = q.get(False)
             logging.info('Worker ' + str(getpid()) + ' reads from ' + file)
             generate_video_level_record(file, 'gs://youtube_8m_video/' + file.split('/')[-1])
             logging.info('Worker ' + str(getpid()) + ' has processed ' + str(i) + ' files')
             i += 1
-    except Queue.Empty:
+    except Empty:
         logging.info('Worker ' + str(getpid()) + ' done')
 
 
@@ -69,6 +69,7 @@ def generate_video_level_record(input_file, output_file):
         rgb_frame = []
         audio_frame = []
         # iterate through frames.
+        logging.info('Worker ' + str(getpid()) + ' iterating through frames')
         for i in range(n_frames):
             rgb_frame.append(tf.cast(tf.decode_raw(
                 tf_seq_example.feature_lists.feature_list['rgb'].feature[
@@ -103,6 +104,7 @@ def generate_video_level_record(input_file, output_file):
             '5th_audio': float_feat(audio_stats_mat[6])
         }
         # Write to tfrecord.
+        logging.info('Worker ' + str(getpid) + ' processed a video')
         example = tf.train.Example(features=tf.train.Features(feature=feature))
         writer.write(example.SerializeToString())
 
@@ -116,7 +118,7 @@ def pad(a, s):
 def get_stats_mat(a):
     s = np.sort(a, axis=1)
     return normal(np.array((np.mean(a, axis=1),
-                            np.std(rgb_mat, axis=1),
+                            np.std(a, axis=1),
                             s[:,-1],
                             s[:,-2],
                             s[:,-3],
