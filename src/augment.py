@@ -9,11 +9,15 @@ from sklearn.preprocessing import normalize
 from Queue import Empty
 
 input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord'
+output_data_dir = 'gs://youtube_8m_video/'
 
+# input_data_pattern = '/Users/yba/Documents/U/EECS_351/youtube-8m/data/frame/train*.tfrecord'
+# output_data_dir = '/Users/yba/Documents/U/EECS_351/youtube-8m/data/new_video/'
 
 def main():
     logging.set_verbosity(tf.logging.INFO)
     files = gfile.Glob(input_data_pattern)
+    # video_level_record_check('/Users/yba/Documents/U/EECS_351/youtube-8m/data/video/traina0.tfrecord')
     q = Queue()
     for file in files:
         q.put(file)
@@ -34,7 +38,7 @@ def worker_main(q):
         while True:
             file = q.get(False)
             logging.info('Worker ' + str(getpid()) + ' reads from ' + file)
-            generate_video_level_record(file, 'gs://youtube_8m_video/' + file.split('/')[-1])
+            generate_video_level_record(file, output_data_dir + file.split('/')[-1])
             logging.info('Worker ' + str(getpid()) + ' has processed ' + str(i) + ' files')
             i += 1
     except Empty:
@@ -61,6 +65,7 @@ def video_level_record_check(input_file):
 def generate_video_level_record(input_file, output_file):
     writer = tf.python_io.TFRecordWriter(output_file)
     logging.info('Worker ' + str(getpid()) + ' writes to ' + str(output_file))
+    num = 0
     for example in tf.python_io.tf_record_iterator(input_file):
         tf_seq_example = tf.train.SequenceExample.FromString(example)
         tf_example = tf.train.Example.FromString(example)
@@ -68,8 +73,7 @@ def generate_video_level_record(input_file, output_file):
         sess = tf.InteractiveSession()
         rgb_frame = []
         audio_frame = []
-        # iterate through frames.
-        logging.info('Worker ' + str(getpid()) + ' iterating through frames')
+        # Iterate through frames.
         for i in range(n_frames):
             rgb_frame.append(tf.cast(tf.decode_raw(
                 tf_seq_example.feature_lists.feature_list['rgb'].feature[
@@ -84,7 +88,7 @@ def generate_video_level_record(input_file, output_file):
         rgb_mat = pad(np.array(rgb_frame).T, (1024, 300)) # (1024, 300)
         audio_mat = pad(np.array(audio_frame).T, (128, 300)) # (128, 300)
         rgb_stats_mat = get_stats_mat(rgb_mat) # (7, 1024)
-        audio_stats_mat = get_stats_mat(rgb_mat)  # (7, 1024)
+        audio_stats_mat = get_stats_mat(audio_mat)  # (7, 1024)
         feature = {
             'video_id': tf_example.features.feature['video_id'],
             'labels': tf_example.features.feature['labels'],
@@ -104,7 +108,8 @@ def generate_video_level_record(input_file, output_file):
             '5th_audio': float_feat(audio_stats_mat[6])
         }
         # Write to tfrecord.
-        logging.info('Worker ' + str(getpid) + ' processed a video')
+        num += 1
+        logging.info('Worker ' + str(getpid()) + ': ' + str(num) + ' videos')
         example = tf.train.Example(features=tf.train.Features(feature=feature))
         writer.write(example.SerializeToString())
 
