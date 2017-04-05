@@ -12,25 +12,26 @@ input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfre
 
 
 def main():
+    logging.set_verbosity(tf.logging.INFO)
     files = gfile.Glob(input_data_pattern)
-    print(files)
     q = Queue()
     for file in files:
         q.put(file)
+    logging.info('Put ' + str(len(files)) + ' files to the queue')
     Pool(3, worker_main, (q,))
 
 
 def worker_main(q):
-    logging('Worker ' + str(getpid()) + ' starts')
+    logging.info('Worker ' + str(getpid()) + ' starts')
     try:
         i = 0
         while True:
             file = q.get(False)
-            logging('Worker ' + str(getpid()) + ' reads from ' + str(file))
+            logging.info('Worker ' + str(getpid()) + ' reads from ' + file)
             generate_video_level_record(file, 'gs://youtube_8m_video/' + file.split('/')[-1])
-            logging('Worker ' + str(getpid()) + ' has processed ' + str(i) + ' files')
+            logging.info('Worker ' + str(getpid()) + ' has processed ' + str(i) + ' files')
     except Queue.Empty:
-        logging('Worker ' + str(getpid()) + ' done')
+        logging.info('Worker ' + str(getpid()) + ' done')
 
 
 def video_level_record_check(input_file):
@@ -52,7 +53,7 @@ def video_level_record_check(input_file):
 
 def generate_video_level_record(input_file, output_file):
     writer = tf.python_io.TFRecordWriter(output_file)
-    logging('Worker ' + str(getpid()) + ' writes to ' + str(output_file))
+    logging.info('Worker ' + str(getpid()) + ' writes to ' + str(output_file))
     for example in tf.python_io.tf_record_iterator(input_file):
         tf_seq_example = tf.train.SequenceExample.FromString(example)
         tf_example = tf.train.Example.FromString(example)
