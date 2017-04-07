@@ -43,20 +43,19 @@ def main():
     num_files = 0
     shuffle(files)
     for file in files:
-        if need_process(file, get_output_file(file)):
-            q.put(file)
-            num_files += 1
+        q.put(file)
+        num_files += 1
     logging.info('Main put ' + str(num_files) + ' files to the queue')
     ps = []
     for i in range(3): # 3 workers: tested on Google Cloud Platform large_model
-        p = Process(target=worker_main, args=(q,num_files,))
+        p = Process(target=worker_main, args=(q,))
         p.start()
         ps.append(p)
     for p in ps:
         p.join()
 
 
-def worker_main(q,num_files):
+def worker_main(q):
     logging.info('Worker ' + str(getpid()) + ' starts')
     i = 0
     try:
@@ -70,8 +69,8 @@ def worker_main(q,num_files):
             num_vid = generate_video_level_record(file, get_output_file(file))
             i += 1
             logging.info('Worker %s processed %sth file with %s videos in '
-                         'in %.2f sec; %s files in total' \
-                         % (getpid(), i, num_vid, (time()-t), num_files))
+                         'in %.2f sec' \
+                         % (getpid(), i, num_vid, (time()-t)))
     except Empty:
         logging.info('Worker %s done' % getpid())
 
