@@ -10,16 +10,21 @@ from os import getpid
 from sklearn.preprocessing import normalize
 from readers import resize_axis
 from time import time
+from os import path
 
 
 # Modify.
-input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord'
+type = 'train'
+input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/%s/%s*.tfrecord' \
+                     % (type, type)
 output_data_dir = 'gs://youtube_8m_video/'
+local = True
 
-# Local testing. Uncomment video_level_record_check() in main also.
-# local_dir = '/Users/yba/Documents/U/EECS_351/youtube-8m/data/'
-# input_data_pattern = local_dir + 'frame/test*.tfrecord'
-# output_data_dir = local_dir + 'new_video/'
+# Local testing.
+if local:
+    local_dir = '/Users/yba/Documents/U/EECS_351/youtube-8m/data/'
+    input_data_pattern = local_dir + 'frame/train*.tfrecord'
+    output_data_dir = local_dir + 'new_video/'
 
 num_classes = 4716
 feature_sizes = [1024, 128]
@@ -30,49 +35,57 @@ max_frames = 300
 def main():
     logging.set_verbosity(tf.logging.INFO)
     files = gfile.Glob(input_data_pattern)
-    done_files = gfile.Glob(output_data_dir + '*.tfrecord')
     # Local checking.
-    #video_level_record_check(local_dir + 'new_video/testa0.tfrecord')
+    if local:
+        video_level_record_check(local_dir + 'new_video/%sa0.tfrecord' % type)
     q = Queue()
     num_files = 0
     for file in files:
-        output_file = get_output_file(file)
-        if not output_file in done_files or \
-                        gfile.GFile(output_file, "rb").size() == 0:
+        if need_process(file, get_output_file(file)):
             q.put(file)
             num_files += 1
     logging.info('Main put ' + str(num_files) + ' files to the queue')
     ps = []
     for i in range(3): # 3 workers: tested on Google Cloud Platform large_model
-        p = Process(target=worker_main, args=(q,))
+        p = Process(target=worker_main, args=(q,num_files,))
         p.start()
         ps.append(p)
     for p in ps:
         p.join()
 
 
-def worker_main(q):
+def worker_main(q,num_files):
     logging.info('Worker ' + str(getpid()) + ' starts')
     i = 0
     try:
         while True:
             file = q.get(False)
-            logging.info('Worker ' + str(getpid()) + ' reads from ' + file)
+            logging.info('Worker %s reads from %s' % (getpid(), file))
             t = time()
-            generate_video_level_record(file, get_output_file(file))
+            num_vid = generate_video_level_record(file, get_output_file(file))
             i += 1
-            logging.info('Worker ' + str(getpid()) + ' processed ' +
-                         str(i) + 'th file in %.2f sec' % (time()-t))
+            logging.info('Worker %s processed %sth file with %s videos in '
+                         'in %.2f sec; %s files in total' \
+                         % (getpid(), i, num_vid, (time()-t), num_files))
     except Empty:
-        logging.info('Worker ' + str(getpid()) + ' done')
+        logging.info('Worker %s done' % getpid())
+
+
+def need_process(input_file, output_file):
+    return (not output_file in gfile.Glob(output_data_dir + '*.tfrecord')) or \
+           gfile.GFile(output_file, "rb").size() == 0 or \
+           get_num_video(input_file) != get_num_video(output_file)
+
+
+def get_num_video(input_file):
+    num_vid = 0
+    for _ in tf.python_io.tf_record_iterator(input_file):
+        num_vid += 1
+    return num_vid
 
 
 def get_output_file(input_file_full_path):
-    return output_data_dir + get_file(input_file_full_path)
-
-
-def get_file(full_path):
-    return full_path.split('/')[-1]
+    return output_data_dir + input_file_full_path.split('/')[-1]
 
 
 def video_level_record_check(input_file):
@@ -81,9 +94,10 @@ def video_level_record_check(input_file):
     mean_rgb = []
     first_audio = []
     fifth_audio = []
-    i = 0
+    if not path.isfile(input_file):
+        print('Input file doesn\'t exist')
+        return
     for example in tf.python_io.tf_record_iterator(input_file):
-        i += 1
         tf_example = tf.train.Example.FromString(example)
         vid_ids.append(tf_example.features.feature['video_id'].bytes_list.
                        value[0].decode(encoding='UTF-8'))
@@ -94,26 +108,23 @@ def video_level_record_check(input_file):
                            value)
         fifth_audio.append(tf_example.features.feature['5th_audio'].float_list.
                            value)
-    print(i)
-    print('Number of videos in this tfrecord: ',len(mean_rgb))
-    print('First video feature length',len(mean_rgb[0]))
-    print('labels of the 1st youtube video (',vid_ids[0],')')
+    print('Number of videos in tfrecord', input_file, ':', len(mean_rgb))
+    print('First video (', vid_ids[0], ')')
+    print('labels')
     unique, counts = np.unique(labels[0], return_counts=True)
     print(dict(zip(unique, counts)))
-    print('mean rgb features of the 1st youtube video (',vid_ids[0],')')
+    print('mean rgb features')
     print(mean_rgb[0][:20])
-    print('1st audio features of the 1st youtube video (',vid_ids[0],')')
+    print('1st audio features')
     print(first_audio[0][:20])
-    print('5th audio features of the 1st youtube video (',vid_ids[0],')')
+    print('5th audio features')
     print(fifth_audio[0][:20])
 
 
 def generate_video_level_record(input_file, output_file):
     writer = tf.python_io.TFRecordWriter(output_file)
-    logging.info('Worker ' + str(getpid()) + ' writes to ' + str(output_file))
-    num_vid = 0
-    for _ in tf.python_io.tf_record_iterator(input_file):
-        num_vid += 1
+    logging.info('Worker %s writes to %s' % (getpid(), output_file))
+    num_vid = get_num_video(input_file)
     with tf.Session() as sess:
         filename_queue = tf.train.string_input_producer([input_file])
         feat = read_and_decode(filename_queue)
@@ -129,14 +140,17 @@ def generate_video_level_record(input_file, output_file):
                              ' videos')
         coord.request_stop()
         coord.join(threads)
+    return i+1 # number of videos processed
 
 
 def process_video(d, writer):
     rgb_frame = d['rgb']
     audio_frame = d['audio']
     # Calculate mean, std, 1st-5th features.
-    rgb_mat = pad(np.array(rgb_frame).T, (1024, 300)) # (1024, 300)
-    audio_mat = pad(np.array(audio_frame).T, (128, 300)) # (128, 300)
+    rgb_mat = np.array(rgb_frame).T
+    audio_mat = np.array(audio_frame).T
+    assert(rgb_mat.shape == (1024, 300))
+    assert(audio_mat.shape == (128, 300))
     rgb_stats_mat = get_stats_mat(rgb_mat) # (7, 1024)
     audio_stats_mat = get_stats_mat(audio_mat)  # (7, 1024)
     feature = {
@@ -160,12 +174,6 @@ def process_video(d, writer):
     # Write to tfrecord.
     example = tf.train.Example(features=tf.train.Features(feature=feature))
     writer.write(example.SerializeToString())
-
-
-def pad(a, s):
-    p = np.zeros(s)
-    p[:a.shape[0],:a.shape[1]] = a
-    return p
 
 
 def get_stats_mat(a):
@@ -209,25 +217,20 @@ def read_and_decode(filename_queue):
             feature_name: tf.FixedLenSequenceFeature([], dtype=tf.string)
             for feature_name in feature_names
             })
-
     video_id = contexts["video_id"]
     labels = (tf.cast(
         tf.sparse_to_dense(contexts["labels"].values, (num_classes,), 1,
                            validate_indices=False),
         tf.int64))
-
     rtn = {}
     rtn['video_id'] = video_id
     rtn['labels'] = labels
-
     # Loads (potentially) different types of features.
     num_features = len(feature_names)
     assert num_features > 0, "No feature selected: feature_names is empty!"
-
     assert len(feature_names) == len(feature_sizes), \
         "length of feature_names (={}) != length of feature_sizes (={})". \
             format(len(feature_names), len(feature_sizes))
-
     num_frames = -1  # the number of frames in the video
     for feature_index in range(num_features):
         feature_name = feature_names[feature_index]
@@ -241,9 +244,7 @@ def read_and_decode(filename_queue):
             num_frames = num_frames_in_this_feature
         else:
             tf.assert_equal(num_frames, num_frames_in_this_feature)
-
         rtn[feature_name] = feature_matrix
-
     return rtn
 
 
