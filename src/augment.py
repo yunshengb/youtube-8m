@@ -157,10 +157,8 @@ def process_video(d, writer):
     rgb_frame = d['rgb']
     audio_frame = d['audio']
     # Calculate mean, std, 1st-5th features.
-    rgb_mat = np.array(rgb_frame).T
-    audio_mat = np.array(audio_frame).T
-    assert(rgb_mat.shape == (1024, 300))
-    assert(audio_mat.shape == (128, 300))
+    rgb_mat = pad(np.array(rgb_frame).T, (1024, 300)) # (1024, 300)
+    audio_mat = pad(np.array(audio_frame).T, (128, 300)) # (128, 300)
     rgb_stats_mat = get_stats_mat(rgb_mat) # (7, 1024)
     audio_stats_mat = get_stats_mat(audio_mat)  # (7, 1024)
     feature = {
@@ -184,6 +182,12 @@ def process_video(d, writer):
     # Write to tfrecord.
     example = tf.train.Example(features=tf.train.Features(feature=feature))
     writer.write(example.SerializeToString())
+
+
+def pad(a, s):
+    p = np.zeros(s)
+    p[:a.shape[0],:a.shape[1]] = a
+    return p
 
 
 def get_stats_mat(a):
