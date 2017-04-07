@@ -28,11 +28,19 @@ max_frames = 300
 def main():
     logging.set_verbosity(tf.logging.INFO)
     files = gfile.Glob(input_data_pattern)
+    done_files = gfile.Glob(output_data_dir + '*.tfrecord')
     #video_level_record_check(local_dir + 'new_video/traina0.tfrecord')
     q = Queue()
+    num_files = 0
+    done_files = [get_file(i) for i in done_files]
+    #logging.info(str(len(files)))
+    #logging.info(str(len(done_files)))
+    #logging.info(str(done_files))
     for file in files:
-        q.put(file)
-    logging.info('Put ' + str(len(files)) + ' files to the queue')
+        if not get_file(file) in done_files:
+            q.put(file)
+            num_files += 1
+    logging.info('Main put ' + str(num_files) + ' files to the queue')
     ps = []
     for i in range(3):
         p = Process(target=worker_main, args=(q,))
@@ -51,12 +59,16 @@ def worker_main(q):
             logging.info('Worker ' + str(getpid()) + ' reads from ' + file)
             t = time()
             generate_video_level_record(file, output_data_dir +
-                                        file.split('/')[-1])
+                                        get_file(file))
             i += 1
             logging.info('Worker ' + str(getpid()) + ' processed ' +
                          str(i) + 'th file in %.2f sec' % (time()-t))
     except Empty:
         logging.info('Worker ' + str(getpid()) + ' done')
+
+
+def get_file(full_path):
+    return full_path.split('/')[-1]
 
 
 def video_level_record_check(input_file):
@@ -163,10 +175,7 @@ def get_stats_mat(a):
 def normal(a):
     a = a - a.mean(axis=1, keepdims=True)
     # * 10 so it's closer to the provided video level feature values.
-    try:
-        return normalize(a, axis=1, norm='l2') * 10
-    except ValueError:
-        return a
+    return normalize(a, axis=1, norm='l2') * 10
 
 
 def byte_feat(value_list):
