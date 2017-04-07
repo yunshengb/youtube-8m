@@ -11,13 +11,14 @@ from sklearn.preprocessing import normalize
 from readers import resize_axis
 from time import time
 from os import path
+from random import shuffle
 
 
 # Modify.
-type = 'test'
+type = 'train'
 input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/%s/%s*.tfrecord' \
                      % (type, type)
-output_data_dir = 'gs://youtube_8m_video/%s/' % type
+output_data_dir = 'gs://youtube_8m_new_video/%s/' % type
 local = False
 
 # Local testing.
@@ -40,13 +41,11 @@ def main():
         video_level_record_check(local_dir + 'new_video/%sa0.tfrecord' % type)
     q = Queue()
     num_files = 0
+    shuffle(files)
     for file in files:
         if need_process(file, get_output_file(file)):
             q.put(file)
             num_files += 1
-            #	logging.info('%s needs processing' % file)
-        else:
-            #logging.info('%s done' % file)
     logging.info('Main put ' + str(num_files) + ' files to the queue')
     ps = []
     for i in range(3): # 3 workers: tested on Google Cloud Platform large_model
@@ -63,6 +62,9 @@ def worker_main(q,num_files):
     try:
         while True:
             file = q.get(False)
+            if not need_process(file, get_output_file(file)):
+                logging.info('Worker %s skipping %s' % (getpid(), file))
+                continue
             logging.info('Worker %s reads from %s' % (getpid(), file))
             t = time()
             num_vid = generate_video_level_record(file, get_output_file(file))
@@ -76,7 +78,6 @@ def worker_main(q,num_files):
 
 def need_process(input_file, output_file):
     if not output_file in gfile.Glob(output_data_dir + '*.tfrecord'):
-        print(input_file, output_file, ' does not exist')
         return True
     #if gfile.GFile(output_file, "rb").size() == 0:
     #    print(input_file, output_file, ' 0 size')
