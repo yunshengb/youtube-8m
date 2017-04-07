@@ -7,7 +7,7 @@ from tensorflow import logging
 from multiprocessing import Queue, Process
 from Queue import Empty
 from os import getpid
-#from sklearn.preprocessing import normalize
+from sklearn.preprocessing import normalize
 from readers import resize_axis
 from time import time
 from os import path
@@ -44,9 +44,9 @@ def main():
         if need_process(file, get_output_file(file)):
             q.put(file)
             num_files += 1
-            logging.info('%s needs processing' % file)
+            #	logging.info('%s needs processing' % file)
         else:
-            logging.info('%s done' % file)
+            #logging.info('%s done' % file)
     logging.info('Main put ' + str(num_files) + ' files to the queue')
     ps = []
     for i in range(3): # 3 workers: tested on Google Cloud Platform large_model
