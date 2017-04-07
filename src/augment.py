@@ -12,11 +12,13 @@ from readers import resize_axis
 from time import time
 
 
+# Modify.
 input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/train/train*.tfrecord'
 output_data_dir = 'gs://youtube_8m_video/'
 
+# Local testing. Uncomment video_level_record_check() in main also.
 # local_dir = '/Users/yba/Documents/U/EECS_351/youtube-8m/data/'
-# input_data_pattern = local_dir + 'frame/train*.tfrecord'
+# input_data_pattern = local_dir + 'frame/test*.tfrecord'
 # output_data_dir = local_dir + 'new_video/'
 
 num_classes = 4716
@@ -29,20 +31,19 @@ def main():
     logging.set_verbosity(tf.logging.INFO)
     files = gfile.Glob(input_data_pattern)
     done_files = gfile.Glob(output_data_dir + '*.tfrecord')
-    #video_level_record_check(local_dir + 'new_video/traina0.tfrecord')
+    # Local checking.
+    #video_level_record_check(local_dir + 'new_video/testa0.tfrecord')
     q = Queue()
     num_files = 0
-    done_files = [get_file(i) for i in done_files]
-    #logging.info(str(len(files)))
-    #logging.info(str(len(done_files)))
-    #logging.info(str(done_files))
     for file in files:
-        if not get_file(file) in done_files:
+        output_file = get_output_file(file)
+        if not output_file in done_files or \
+                        gfile.GFile(output_file, "rb").size() == 0:
             q.put(file)
             num_files += 1
     logging.info('Main put ' + str(num_files) + ' files to the queue')
     ps = []
-    for i in range(3):
+    for i in range(3): # 3 workers: tested on Google Cloud Platform large_model
         p = Process(target=worker_main, args=(q,))
         p.start()
         ps.append(p)
@@ -58,13 +59,16 @@ def worker_main(q):
             file = q.get(False)
             logging.info('Worker ' + str(getpid()) + ' reads from ' + file)
             t = time()
-            generate_video_level_record(file, output_data_dir +
-                                        get_file(file))
+            generate_video_level_record(file, get_output_file(file))
             i += 1
             logging.info('Worker ' + str(getpid()) + ' processed ' +
                          str(i) + 'th file in %.2f sec' % (time()-t))
     except Empty:
         logging.info('Worker ' + str(getpid()) + ' done')
+
+
+def get_output_file(input_file_full_path):
+    return output_data_dir + get_file(input_file_full_path)
 
 
 def get_file(full_path):
@@ -93,6 +97,9 @@ def video_level_record_check(input_file):
     print(i)
     print('Number of videos in this tfrecord: ',len(mean_rgb))
     print('First video feature length',len(mean_rgb[0]))
+    print('labels of the 1st youtube video (',vid_ids[0],')')
+    unique, counts = np.unique(labels[0], return_counts=True)
+    print(dict(zip(unique, counts)))
     print('mean rgb features of the 1st youtube video (',vid_ids[0],')')
     print(mean_rgb[0][:20])
     print('1st audio features of the 1st youtube video (',vid_ids[0],')')
