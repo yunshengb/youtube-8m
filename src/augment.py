@@ -7,18 +7,18 @@ from tensorflow import logging
 from multiprocessing import Queue, Process
 from Queue import Empty
 from os import getpid
-from sklearn.preprocessing import normalize
+#from sklearn.preprocessing import normalize
 from readers import resize_axis
 from time import time
 from os import path
 
 
 # Modify.
-type = 'train'
+type = 'test'
 input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/%s/%s*.tfrecord' \
                      % (type, type)
-output_data_dir = 'gs://youtube_8m_video/'
-local = True
+output_data_dir = 'gs://youtube_8m_video/%s/' % type
+local = False
 
 # Local testing.
 if local:
@@ -44,6 +44,9 @@ def main():
         if need_process(file, get_output_file(file)):
             q.put(file)
             num_files += 1
+            logging.info('%s needs processing' % file)
+        else:
+            logging.info('%s done' % file)
     logging.info('Main put ' + str(num_files) + ' files to the queue')
     ps = []
     for i in range(3): # 3 workers: tested on Google Cloud Platform large_model
@@ -72,9 +75,16 @@ def worker_main(q,num_files):
 
 
 def need_process(input_file, output_file):
-    return (not output_file in gfile.Glob(output_data_dir + '*.tfrecord')) or \
-           gfile.GFile(output_file, "rb").size() == 0 or \
-           get_num_video(input_file) != get_num_video(output_file)
+    if not output_file in gfile.Glob(output_data_dir + '*.tfrecord'):
+        print(input_file, output_file, ' does not exist')
+        return True
+    #if gfile.GFile(output_file, "rb").size() == 0:
+    #    print(input_file, output_file, ' 0 size')
+    #    return True
+    #if get_num_video(input_file) != get_num_video(output_file):
+    #    print(input_file, output_file, ' insufficient videos')
+    #    return True
+    return False
 
 
 def get_num_video(input_file):
