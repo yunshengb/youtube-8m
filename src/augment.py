@@ -18,7 +18,7 @@ from random import shuffle
 type = 'train'
 input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/%s/%s*.tfrecord' \
                      % (type, type)
-output_data_dir = 'gs://youtube_8m_new_video/%s/' % type
+output_data_dir = 'gs://youtube_8m_new_new_video/%s/' % type
 local = False
 
 # Local testing.
@@ -26,6 +26,8 @@ if local:
     local_dir = '/Users/yba/Documents/U/EECS_351/youtube-8m/data/'
     input_data_pattern = local_dir + 'frame/train*.tfrecord'
     output_data_dir = local_dir + 'new_video/'
+
+# Useful command: gsutil ls -lR gs://youtube_8m_new_video/train/*.tfrecord
 
 num_classes = 4716
 feature_sizes = [1024, 128]
@@ -38,6 +40,7 @@ def main():
     files = gfile.Glob(input_data_pattern)
     # Local checking.
     if local:
+        video_level_record_check(local_dir + 'video/%sa0.tfrecord' % type)
         video_level_record_check(local_dir + 'new_video/%sa0.tfrecord' % type)
     q = Queue()
     num_files = 0
@@ -78,12 +81,6 @@ def worker_main(q):
 def need_process(input_file, output_file):
     if not output_file in gfile.Glob(output_data_dir + '*.tfrecord'):
         return True
-    #if gfile.GFile(output_file, "rb").size() == 0:
-    #    print(input_file, output_file, ' 0 size')
-    #    return True
-    #if get_num_video(input_file) != get_num_video(output_file):
-    #    print(input_file, output_file, ' insufficient videos')
-    #    return True
     return False
 
 
@@ -123,6 +120,7 @@ def video_level_record_check(input_file):
     print('labels')
     unique, counts = np.unique(labels[0], return_counts=True)
     print(dict(zip(unique, counts)))
+    print(labels[0])
     print('mean rgb features')
     print(mean_rgb[0][:20])
     print('1st audio features')
@@ -185,7 +183,7 @@ def process_video(d, writer):
 
 
 def pad(a, s):
-    p = np.zeros(s)
+    p = np.zeros(s) # important! otherwise, weird type error in float_feat()
     p[:a.shape[0],:a.shape[1]] = a
     return p
 
@@ -232,10 +230,7 @@ def read_and_decode(filename_queue):
             for feature_name in feature_names
             })
     video_id = contexts["video_id"]
-    labels = (tf.cast(
-        tf.sparse_to_dense(contexts["labels"].values, (num_classes,), 1,
-                           validate_indices=False),
-        tf.int64))
+    labels = contexts["labels"].values
     rtn = {}
     rtn['video_id'] = video_id
     rtn['labels'] = labels
