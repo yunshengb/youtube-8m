@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-option = 'i'
+option = 't'
 model = 'MoeModel'
 local = False
 batch = 128
@@ -115,8 +115,8 @@ def getModelParams(frame_level_ = False):
     prefix = 'mean_' if not frame_level else ''
     params = [('frame_features', frame_level),
               ('model', model),
-              ('feature_names', ', '.join([i[0] for i in features])),
-              ('feature_sizes', ', '.join([str(i[1]) for i in features]))]
+              ('feature_names', '"%s"' % ', '.join([i[0] for i in features])),
+              ('feature_sizes', '"%s"' % ', '.join([str(i[1]) for i in features]))]
     if batch:
         params.append(('batch_size', batch))
     if extra:
