@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 option = 'i'
-model = 'MyModel_mturkeli'
+model = 'MoeModel'
 local = False
-batch = None
-extra = [('moe_num_mixtures', 7), ('lstm_layers', 5),
-         (('base_learning_rate', 0.0001))]
-save = 'Save'
+batch = 128
+features = [('mean_rgb', 1024), ('mean_audio', 128), ('std_rgb', 1024),
+           ('std_audio', 128)]
+extra = [('moe_num_mixtures', 15), (('base_learning_rate', 0.05))]
+save = '_std_15'
 
 '''
 ('moe_num_mixtures', 7)
@@ -79,10 +80,10 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
               ('region', 'us-east1'),
               ('config', 'src/cloudml-gpu.yaml'),
               (' --%s_data_pattern' % data_pattern,
-               '"gs://youtube8m-ml-us-east1/1/%s_level/%s/%s*.tfrecord"' %
-               (f_type, tfrecord, tfrecord)),
+               '"gs://youtube_8m_new_new_video/%s/%s*.tfrecord"' %
+               (tfrecord, tfrecord)),
               ('train_dir', '$BUCKET_NAME/%s' % getModelPath())]
-    return '\t'.join(('BUCKET_NAME=gs://muratturkeli93_yt8m_train_bucket;\n',
+    return '\t'.join(('BUCKET_NAME=gs://${USER}_yt8m_train_bucket;\n',
                       'JOB_NAME=yt8m_{}_$(date +%Y%m%d_%H%M%S);\n'.format(option),
                       'gcloud --verbosity=debug ml-engine jobs \\\n',
                       'submit training $JOB_NAME \\\n', synthesizeParam(params),
@@ -114,8 +115,8 @@ def getModelParams(frame_level_ = False):
     prefix = 'mean_' if not frame_level else ''
     params = [('frame_features', frame_level),
               ('model', model),
-              ('feature_names', '"%srgb, %saudio"' % (prefix, prefix)),
-              ('feature_sizes', '"1024, 128"')]
+              ('feature_names', ', '.join([i[0] for i in features])),
+              ('feature_sizes', ', '.join([str(i[1]) for i in features]))]
     if batch:
         params.append(('batch_size', batch))
     if extra:
