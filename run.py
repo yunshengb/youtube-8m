@@ -5,8 +5,8 @@ local = False
 batch = 128
 features = [('mean_rgb', 1024), ('mean_audio', 128), ('std_rgb', 1024),
            ('std_audio', 128)]
-extra = [('moe_num_mixtures', 15), (('base_learning_rate', 0.05))]
-save = '_std_15'
+extra = [('moe_num_mixtures', 17), ('base_learning_rate', 0.05)]
+save = '_std_7'
 
 '''
 ('moe_num_mixtures', 7)
