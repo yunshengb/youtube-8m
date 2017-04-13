@@ -223,7 +223,8 @@ def get_stats_mat(a):
 def normal(a):
     a = a - a.mean(axis=1, keepdims=True)
     # * 10 so it's closer to the provided video level feature values.
-    return normalize(a, axis=1, norm='l2') * 10
+    # return normalize(a, axis=1, norm='l2') * 10
+    return (a / np.linalg.norm(a)) * 10 * np.sqrt(7)
 
 
 def byte_feat(value_list):
@@ -303,7 +304,9 @@ if __name__ == '__main__':
 # x = np.array([[1, 2, 3, 0], [6, 5, 0, 4], [7, 8, 9, 0]])
 # y = np.array([[1, 2, 3, 4], [5, 6, 7, 8]])
 # x = np.concatenate((x, y))
-# print(x[1][-1:])
+# print(x)
+# z = np.array([[1, 2], [3, 4]])
+# print(z / np.linalg.norm(z))
 # a1 = np.mean(x, axis=1)
 # a2 = np.std(x, axis=1)
 # print(a1)
