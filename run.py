@@ -11,6 +11,7 @@ features = [('mean_rgb', 1024), ('std_rgb', 1024), ('1st_rgb', 1024),
             ('5th_rgb', 1024)]
 extra = [('moe_num_mixtures', 4)]
 save = '_new_all_4exp_gpu'
+data_bucket = 'youtube_8m_augment_video'
 
 
 '''
@@ -85,8 +86,8 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
               ('region', 'us-east1'),
               ('config', 'src/cloudml-gpu.yaml'),
               (' --%s_data_pattern' % data_pattern,
-               '"gs://youtube_8m_augment_video/%s/%s*.tfrecord"' %
-               (tfrecord, tfrecord)),
+               '"gs://%s/%s/%s*.tfrecord"' %
+               (data_bucket, tfrecord, tfrecord)),
               ('train_dir', '$BUCKET_NAME/%s' % getModelPath())]
     return '\t'.join(('BUCKET_NAME=gs://${USER}_yt8m_train_bucket;\n',
                       'JOB_NAME=yt8m_{}_$(date +%Y%m%d_%H%M%S);\n'.format(option),

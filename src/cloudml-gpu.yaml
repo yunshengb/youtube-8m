@@ -1,4 +1,4 @@
 trainingInput:
   scaleTier: CUSTOM
-  masterType: large_model
+  masterType: complex_model_m_gpu
   runtimeVersion: "1.0"
