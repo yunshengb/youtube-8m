@@ -2,11 +2,16 @@
 option = 't'
 model = 'MoeModel'
 local = False
-batch = 128
-features = [('mean_rgb', 1024), ('mean_audio', 128), ('std_rgb', 1024),
-           ('std_audio', 128)]
-extra = [('moe_num_mixtures', 17), ('base_learning_rate', 0.05)]
-save = '_std_7'
+batch = 64
+features = [('mean_rgb', 1024), ('std_rgb', 1024), ('1st_rgb', 1024),
+            ('2nd_rgb', 1024), ('3rd_rgb', 1024), ('4th_rgb', 1024),
+            ('5th_rgb', 1024),
+            ('mean_audio', 128), ('std_audio', 128), ('1st_audio', 128),
+            ('2nd_audio', 128), ('3rd_audio', 128), ('4th_audio', 128),
+            ('5th_rgb', 1024)]
+extra = [('moe_num_mixtures', 4)]
+save = '_new_all_4exp_gpu'
+
 
 '''
 ('moe_num_mixtures', 7)
@@ -80,7 +85,7 @@ def getRemoteCmd(option, data_pattern, tfrecord, output_file=''):
               ('region', 'us-east1'),
               ('config', 'src/cloudml-gpu.yaml'),
               (' --%s_data_pattern' % data_pattern,
-               '"gs://youtube_8m_new_new_video/%s/%s*.tfrecord"' %
+               '"gs://youtube_8m_augment_video/%s/%s*.tfrecord"' %
                (tfrecord, tfrecord)),
               ('train_dir', '$BUCKET_NAME/%s' % getModelPath())]
     return '\t'.join(('BUCKET_NAME=gs://${USER}_yt8m_train_bucket;\n',
