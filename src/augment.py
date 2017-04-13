@@ -18,7 +18,7 @@ from random import shuffle
 type = 'train'
 input_data_pattern = 'gs://youtube8m-ml-us-east1/1/frame_level/%s/%s*.tfrecord' \
                      % (type, type)
-output_data_dir = 'gs://youtube_8m_new_new_video/%s/' % type
+output_data_dir = 'gs://youtube_8m_augment_video/%s/' % type
 local = False
 
 # Local testing.
@@ -27,7 +27,19 @@ if local:
     input_data_pattern = local_dir + 'frame/train*.tfrecord'
     output_data_dir = local_dir + 'new_video/'
 
-# Useful command: gsutil ls -lR gs://youtube_8m_new_video/train/*.tfrecord
+'''
+Useful command:
+gsutil ls -lR gs://youtube_8m_augment_video/train/*.tfrecord
+BUCKET_NAME=gs://youtube_8m_augment_video;
+	JOB_NAME=yt8m_create_test_$(date +%Y%m%d_%H%M%S);
+	gcloud --verbosity=debug ml-engine jobs \
+	submit training $JOB_NAME \
+	--package-path=src \
+	--module-name=src.augment \
+	--staging-bucket=$BUCKET_NAME \
+	--region=us-east1 \
+	--config=src/cloudml-gpu.yaml \
+'''
 
 num_classes = 4716
 feature_sizes = [1024, 128]
@@ -99,6 +111,7 @@ def video_level_record_check(input_file):
     vid_ids = []
     labels = []
     mean_rgb = []
+    mean_audio = []
     first_audio = []
     fifth_audio = []
     if not path.isfile(input_file):
@@ -111,22 +124,29 @@ def video_level_record_check(input_file):
         labels.append(tf_example.features.feature['labels'].int64_list.value)
         mean_rgb.append(tf_example.features.feature['mean_rgb'].float_list.
                         value)
+        mean_audio.append(tf_example.features.feature['mean_audio'].float_list.
+                        value)
         first_audio.append(tf_example.features.feature['1st_audio'].float_list.
                            value)
         fifth_audio.append(tf_example.features.feature['5th_audio'].float_list.
                            value)
+    id = 4
     print('Number of videos in tfrecord', input_file, ':', len(mean_rgb))
-    print('First video (', vid_ids[0], ')')
+    print('%sth video (' % id, vid_ids[id], ')')
     print('labels')
-    unique, counts = np.unique(labels[0], return_counts=True)
+    unique, counts = np.unique(labels[id], return_counts=True)
     print(dict(zip(unique, counts)))
-    print(labels[0])
+    print(labels[id])
+    assert(len(mean_rgb[id]) == 1024)
     print('mean rgb features')
-    print(mean_rgb[0][:20])
+    print(mean_rgb[id][:20])
+    assert(len(mean_audio[id]) == 128)
+    print('mean audio features')
+    print(mean_audio[id][:20])
     print('1st audio features')
-    print(first_audio[0][:20])
+    print(first_audio[id][:20])
     print('5th audio features')
-    print(fifth_audio[0][:20])
+    print(fifth_audio[id][:20])
 
 
 def generate_video_level_record(input_file, output_file):
@@ -157,25 +177,26 @@ def process_video(d, writer):
     # Calculate mean, std, 1st-5th features.
     rgb_mat = pad(np.array(rgb_frame).T, (1024, 300)) # (1024, 300)
     audio_mat = pad(np.array(audio_frame).T, (128, 300)) # (128, 300)
-    rgb_stats_mat = get_stats_mat(rgb_mat) # (7, 1024)
-    audio_stats_mat = get_stats_mat(audio_mat)  # (7, 1024)
+    mat = np.concatenate((rgb_mat, audio_mat))
+    stats_mat = get_stats_mat(mat) # (7, 1024 + 128)
+    assert(stats_mat.shape == (7, 1024 + 128))
     feature = {
         'video_id': byte_feat([d['video_id']]), # note: [[...]] -> proper string
         'labels': int64_feat(d['labels']),
-        'mean_rgb': float_feat(rgb_stats_mat[0]),
-        'mean_audio': float_feat(audio_stats_mat[0]),
-        'std_rgb': float_feat(rgb_stats_mat[1]),
-        'std_audio': float_feat(audio_stats_mat[1]),
-        '1st_rgb': float_feat(rgb_stats_mat[2]),
-        '1st_audio': float_feat(audio_stats_mat[2]),
-        '2nd_rgb': float_feat(rgb_stats_mat[3]),
-        '2nd_audio': float_feat(audio_stats_mat[3]),
-        '3rd_rgb': float_feat(rgb_stats_mat[4]),
-        '3rd_audio': float_feat(audio_stats_mat[4]),
-        '4th_rgb': float_feat(rgb_stats_mat[5]),
-        '4th_audio': float_feat(audio_stats_mat[5]),
-        '5th_rgb': float_feat(rgb_stats_mat[6]),
-        '5th_audio': float_feat(audio_stats_mat[6])
+        'mean_rgb': float_feat(stats_mat[0][:1024]),
+        'mean_audio': float_feat(stats_mat[0][-128:]),
+        'std_rgb': float_feat(stats_mat[1][:1024]),
+        'std_audio': float_feat(stats_mat[1][-128:]),
+        '1st_rgb': float_feat(stats_mat[2][:1024]),
+        '1st_audio': float_feat(stats_mat[2][-128:]),
+        '2nd_rgb': float_feat(stats_mat[3][:1024]),
+        '2nd_audio': float_feat(stats_mat[3][-128:]),
+        '3rd_rgb': float_feat(stats_mat[4][:1024]),
+        '3rd_audio': float_feat(stats_mat[4][-128:]),
+        '4th_rgb': float_feat(stats_mat[5][:1024]),
+        '4th_audio': float_feat(stats_mat[5][-128:]),
+        '5th_rgb': float_feat(stats_mat[6][:1024]),
+        '5th_audio': float_feat(stats_mat[6][-128:])
     }
     # Write to tfrecord.
     example = tf.train.Example(features=tf.train.Features(feature=feature))
@@ -280,7 +301,9 @@ if __name__ == '__main__':
 
 # Fun area:
 # x = np.array([[1, 2, 3, 0], [6, 5, 0, 4], [7, 8, 9, 0]])
-# print(x)
+# y = np.array([[1, 2, 3, 4], [5, 6, 7, 8]])
+# x = np.concatenate((x, y))
+# print(x[1][-1:])
 # a1 = np.mean(x, axis=1)
 # a2 = np.std(x, axis=1)
 # print(a1)
